@@ -20,4 +20,3 @@ if (m==n) {
     if (m >= n) 
         print res;
 }
-
