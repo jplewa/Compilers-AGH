@@ -1,4 +1,3 @@
-import sys
 import ply.lex as lex
 
 reserved = {
@@ -16,12 +15,6 @@ reserved = {
 }
 
 tokens = (
-    'LPAREN',
-    'RPAREN',
-    'LBRACKET',
-    'RBRACKET',
-    'LBRACES',
-    'RBRACES',
     'DOTADD',
     'DOTSUB',
     'DOTMUL',
@@ -41,10 +34,6 @@ tokens = (
     'GEQ',
     'NEQ',
     'EQ',
-    'RANGE',
-    'TRANSPOSE',
-    'COMMA',
-    'SEMICOLON',
     'FLOAT',
     'INTNUM',
     'ID',
@@ -75,67 +64,6 @@ t_LEQ = r'<='
 t_GEQ = r'>='
 t_NEQ = r'!='
 t_EQ = r'=='
-
-
-def t_LPAREN(t):
-    r'\('
-    t.type = '('
-    return t
-
-
-def t_RPAREN(t):
-    r'\)'
-    t.type = ')'
-    return t
-
-
-def t_LBRACKET(t):
-    r'\['
-    t.type = '['
-    return t
-
-
-def t_RBRACKET(t):
-    r'\]'
-    t.type = ']'
-    return t
-
-
-def t_LBRACES(t):
-    r'\{'
-    t.type = '}'
-    return t
-
-
-def t_RBRACES(t):
-    r'\}'
-    t.type = '{'
-    return t
-
-
-def t_RANGE(t):
-    r':'
-    t.type = ':'
-    return t
-
-
-def t_TRANSPOSE(t):
-    r'\''
-    t.type = '\''
-    return t
-
-
-def t_COMMA(t):
-    r','
-    t.type = ','
-    return t
-
-
-def t_SEMICOLON(t):
-    r';'
-    t.type = ';'
-    return t
-
 
 t_ignore = ' \t'
 
@@ -184,8 +112,8 @@ lexer = lex.lex()
 def find_column(text, tok):
     text = text.split('\n')
     pos = 0
-    for x in text:
-        if pos + len(x) > tok.lexpos:
+    for line in text:
+        if pos + len(line) > tok.lexpos:
             return tok.lexpos - pos + 1
-        pos += len(x) + 1
+        pos += len(line) + 1
     raise ValueError('Column not found')
