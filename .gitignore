@@ -103,8 +103,9 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-# additional
+# extra stuff
 *.pdf
 *.tar
 */.vscode
-
+*.out
+*/parsetab.py
