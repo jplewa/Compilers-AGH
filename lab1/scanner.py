@@ -58,10 +58,10 @@ t_SUBASSIGN = r'-='
 t_MULASSIGN = r'\*='
 t_DIVASSIGN = r'/='
 
-t_LT = r'<'
-t_GT = r'>'
 t_LEQ = r'<='
 t_GEQ = r'>='
+t_LT = r'<'
+t_GT = r'>'
 t_NEQ = r'!='
 t_EQ = r'=='
 
@@ -87,7 +87,7 @@ def t_ID(t):
 
 
 def t_STRING(t):
-    r'(".*")|(\'.*\')'
+    r'(".*?")|(\'.*?\')'
     t.value = str(t.value)
     return t
 
@@ -109,10 +109,10 @@ def t_error(t):
 lexer = lex.lex()
 
 
-def find_column(text, tok):
-    text = text.split('\n')
+def find_column(tok):
+    split_text = lexer.lexdata.split('\n')
     pos = 0
-    for line in text:
+    for line in split_text:
         if pos + len(line) > tok.lexpos:
             return tok.lexpos - pos + 1
         pos += len(line) + 1
