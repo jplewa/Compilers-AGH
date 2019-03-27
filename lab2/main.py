@@ -15,5 +15,5 @@ if __name__ == '__main__':
 
     parser = Mparser.parser
     text = file.read()
-    scanner.set_text(text)
     parser.parse(text, lexer=scanner.lexer)
+    

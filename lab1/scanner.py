@@ -2,9 +2,9 @@ import ply.lex as lex
 
 reserved = {
     'if': 'IF',
-    'then': 'THEN',
     'else': 'ELSE',
     'while': 'WHILE',
+    'for': 'FOR',
     'break': 'BREAK',
     'continue': 'CONTINUE',
     'return': 'RETURN',
@@ -23,7 +23,6 @@ tokens = (
     'SUBASSIGN',
     'MULASSIGN',
     'DIVASSIGN',
-    'ASSIGN',
     'ADD',
     'SUB',
     'MUL',
