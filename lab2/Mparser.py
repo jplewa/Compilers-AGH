@@ -9,8 +9,9 @@ tokens = scanner.tokens
 precedence = (
     # to fill ...
     ("left", 'ADD', 'SUB'),
-    ("left", 'DIV', 'MUL')
-    
+    ("left", 'DIV', 'MUL'),
+    ("nonassoc", 'NO_ELSE'),
+    ("nonassoc", 'ELSE')
     # ('left', '\'[\'')
     # to fill ...
 )
@@ -120,23 +121,30 @@ def p_one_liners(p):
                    | while_loop
                    | for_loop """
 
+def p_if_body(p):
+    """ if_body : one_liners
+                | block
+                | conditional_expressions"""
 
 def p_conditional_expressions(p):
-    """ conditional_expressions : if conditional_expressions
-                                | if else_if 
-                                | if """
-
-
-def p_else_if(p):
-    """ else_if : ELSE if else_if 
-                | ELSE if
-                | ELSE one_liners
-                | ELSE block """
-
+    """ conditional_expressions : if"""
 
 def p_if(p):
-    """ if : IF '(' condition ')' one_liners 
-           | IF '(' condition ')' block """
+    """ if : IF '(' condition ')' if_body %prec NO_ELSE
+           | IF '(' condition ')' if_body ELSE if_body"""
+
+# def p_else_if(p):
+#     """ else_if : ELSE if else_if 
+#                 | ELSE if
+#                 | ELSE one_liners
+#                 | ELSE block """
+
+
+# def p_if(p):
+#     """ if : IF '(' condition ')' one_liners 
+#            | IF '(' condition ')' block """
+
+
 
 
 def p_block(p):
