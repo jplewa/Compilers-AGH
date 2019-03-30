@@ -12,7 +12,6 @@ precedence = (
     ("left", 'DIV', 'MUL'),
     ("nonassoc", 'NO_ELSE'),
     ("nonassoc", 'ELSE')
-    # ('left', '\'[\'')
     # to fill ...
 )
 
@@ -152,15 +151,15 @@ def p_block(p):
 
 
 def p_number_instruction(p):
-    """number_instruction : signed_number ADD xd
-                          | signed_number SUB xd
-                          | signed_number MUL xd
-                          | signed_number DIV xd """
+    """number_instruction : signed_number ADD arithmetic_operand
+                          | signed_number SUB arithmetic_operand
+                          | signed_number MUL arithmetic_operand
+                          | signed_number DIV arithmetic_operand """
 
 
-def p_xd(p):
-    """xd : number
-          | number_instruction """
+def p_arithmetic_operand(p):
+    """arithmetic_operand : number
+                          | number_instruction """
 
 
 def p_SIGNED_NUMBER(p):
