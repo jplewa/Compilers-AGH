@@ -8,7 +8,9 @@ tokens = scanner.tokens
 
 precedence = (
     # to fill ...
-    # ("left", 'ADD', 'SUB'),
+    ("left", 'ADD', 'SUB'),
+    ("left", 'DIV', 'MUL')
+    
     # ('left', '\'[\'')
     # to fill ...
 )
@@ -27,25 +29,29 @@ def p_program(p):
 
 
 def p_instructions_opt(p):
-    """instructions_opt : instructions 
+    """instructions_opt : instructions
                         | """
+
+def p_comment_opt(p):
+    """ comment_opt : COMMENT
+                    | """
 
 
 def p_instructions(p):
-    """ instructions : instructions instruction ';'
-                     | instructions BREAK ';'
-                     | instructions PRINT print ';'
-                     | instructions CONTINUE ';'
-                     | instructions flow
-                     | instructions RETURN argument ';'
-                     | instructions block
-                     | instruction ';'
-                     | BREAK ';'
-                     | CONTINUE ';'
-                     | PRINT print ';'
-                     | flow
-                     | block
-                     | RETURN argument ';'"""
+    """ instructions : instructions instruction ';' comment_opt
+                     | instructions BREAK ';' comment_opt
+                     | instructions PRINT print ';' comment_opt
+                     | instructions CONTINUE ';' comment_opt
+                     | instructions flow comment_opt
+                     | instructions RETURN argument ';' comment_opt
+                     | instructions block comment_opt
+                     | instruction ';' comment_opt
+                     | BREAK ';' comment_opt
+                     | CONTINUE ';' comment_opt
+                     | PRINT print ';' comment_opt
+                     | flow comment_opt
+                     | block comment_opt
+                     | RETURN argument ';' comment_opt"""
 
 
 def p_print(p):
@@ -199,8 +205,7 @@ def p_number(p):
 
 
 def p_ARRAY(p):
-    """ ARRAY : '[' vector ']' 
-              | index """
+    """ ARRAY : vector """
 
 
 def p_array(p):
@@ -208,30 +213,37 @@ def p_array(p):
               | assignable """
 
 
+# def p_vector(p):
+#     """ vector : '[' vector ']'
+#                | index
+#                | vector ',' vectors """
+
+
+# def p_vectors(p):
+#     """ vectors :  index
+#                 | '[' vectors ']' """
+
 def p_vector(p):
-    """ vector : '[' vector ']'
-               | index
-               | vector ',' vectors """
+    """ vector : index
+               | '[' vector_list ']'"""
 
-
-def p_vectors(p):
-    """ vectors :  index
-                | '[' vectors ']' """
+def p_vector_list(p):
+    """ vector_list : vector_list ',' vector
+                    | vector """
 
 
 def p_index(p):
-    """ index : '[' index_list ']'
-              | '[' intnum ']' """
+    """ index : '[' index_list ']' """
 
 
 def p_index_list(p):
-    """ index_list : intnum ',' index_list
+    """ index_list : index_list ',' intnum
                 | intnum """
 
 
 def p_assignable(p):
-    """ assignable : ID 
-                   | ID index """
+    """ assignable : ID index 
+                   | ID """
 
 
 parser = yacc.yacc()
