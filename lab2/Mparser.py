@@ -220,13 +220,13 @@ def p_vectors(p):
 
 
 def p_index(p):
-    """ index : '[' indices intnum ']'
+    """ index : '[' index_list ']'
               | '[' intnum ']' """
 
 
-def p_indices(p):
-    """ indices : indices ',' intnum
-                | intnum ',' """
+def p_index_list(p):
+    """ index_list : intnum ',' index_list
+                | intnum """
 
 
 def p_assignable(p):
