@@ -10,8 +10,8 @@ precedence = (
     # to fill ...
     ("left", 'ADD', 'SUB'),
     ("left", 'DIV', 'MUL'),
-    ("nonassoc", 'NO_ELSE'),
-    ("nonassoc", 'ELSE')
+    ("nonassoc", 'NO_ELSE', 'NO_INDEX'),
+    ("nonassoc", 'ELSE', '[')
     # to fill ...
 )
 
@@ -250,7 +250,7 @@ def p_index_list(p):
 
 def p_assignable(p):
     """ assignable : ID index 
-                   | ID """
+                   | ID %prec NO_INDEX"""
 
 
 parser = yacc.yacc()
