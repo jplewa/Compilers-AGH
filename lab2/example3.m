@@ -8,7 +8,6 @@ if(N==10)
 else if(N!=10)
     print "N!=10";
 
-
 if(N>5) {
     print "N>5";
 }
@@ -62,4 +61,8 @@ for i = 1:N {
 
 
 
+A = zeros(5); # create 5x5 matrix filled with zeros
+D = A.+B.+C ;   # add element-wise A with transpose of B
 
+for j = 1:10 
+    print j;

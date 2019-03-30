@@ -68,7 +68,7 @@ t_ignore = ' \t'
 
 
 def t_FLOAT(t):
-    r'(\d+(\.\d*)|(\.\d+))((E|e)(\+|–)?\d+)?'
+    r'(\d+(\.\d*)|(\.\d+))((E|e)(\+|-)?\d+)?|(\d+(E|e)(\+|-)?\d+)'
     t.value = float(t.value)
     return t
 
