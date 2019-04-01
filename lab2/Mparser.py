@@ -1,7 +1,7 @@
-import lab1.scanner as scanner
 import ply.yacc as yacc
 import sys
 sys.path.append("..")
+import lab1.scanner as scanner
 
 
 tokens = scanner.tokens
@@ -9,8 +9,7 @@ tokens = scanner.tokens
 precedence = (
     ("left", 'ADD', 'SUB'),
     ("left", 'DIV', 'MUL'),
-    # ("left", 'EQ', 'NEQ', 'LEQ', 'GEQ', 'LT', 'GT'),
-    ("left", '='), #'DIVASSIGN', 'MULASSIGN', 'SUBASSIGN', 'ADDASSIGN'),
+    ("left", '='),
     ("nonassoc", 'NO_ELSE', 'NO_INDEX'),
     ("nonassoc", 'ELSE', '[')
 )
@@ -71,7 +70,7 @@ def p_flow(p):
 
 
 def p_instruction(p):
-    """ instruction : conditional_operand
+    """ instruction : operand
                     | CONDITION
     """
 
@@ -89,25 +88,25 @@ def p_arithmetic_assignment(p):
 
 
 def p_CONDITION(p):
-    """ CONDITION : instruction EQ conditional_operand
-                  | instruction NEQ conditional_operand
-                  | instruction LEQ conditional_operand
-                  | instruction GEQ conditional_operand
-                  | instruction LT conditional_operand
-                  | instruction GT conditional_operand
+    """ CONDITION : instruction EQ operand
+                  | instruction NEQ operand
+                  | instruction LEQ operand
+                  | instruction GEQ operand
+                  | instruction LT operand
+                  | instruction GT operand
     """
 
 
-def p_conditional_operand(p):
-    """ conditional_operand : STRING
-                            | arithmetic_assignment
-                            | number_instruction
-                            | SIGNED_NUMBER
-                            | matrix_instruction
-                            | ARRAY
-                            | function
-                            | assignment
-                            | assignable
+def p_operand(p):
+    """ operand : STRING
+                | arithmetic_assignment
+                | number_instruction
+                | SIGNED_NUMBER
+                | matrix_instruction
+                | ARRAY
+                | function
+                | assignment
+                | assignable
     """
 
 
