@@ -36,8 +36,7 @@ tokens = (
     'FLOAT',
     'INTNUM',
     'ID',
-    'STRING',
-    'COMMENT',
+    'STRING'
 ) + tuple(reserved.values())
 
 literals = ['=', '(', ')', '{', '}', '[', ']', ';', ',', '\'', ':']

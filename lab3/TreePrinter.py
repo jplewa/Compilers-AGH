@@ -1,8 +1,10 @@
 from __future__ import print_function
-import AST
+import sys
+sys.path.append("..")
+import lab3.AST as AST
+
 
 def addToClass(cls):
-
     def decorator(func):
         setattr(cls,func.__name__,func)
         return func
@@ -15,19 +17,36 @@ class TreePrinter:
         raise Exception("printTree not defined in class " + self.__class__.__name__)
 
 
-    @addToClass(AST.IntNum)
+    # @addToClass(AST.IntNum)
+    # def printTree(self, indent=0):
+    #     pass
+    #     # fill in the body
+
+
+    # @addToClass(AST.Error)
+    # def printTree(self, indent=0):
+    #     pass    
+    #     # fill in the body
+
+    @addToClass(AST.Program)
     def printTree(self, indent=0):
-        pass
-        # fill in the body
+        self.instructions.printTree()
 
-
-    @addToClass(AST.Error)
+    
+    @addToClass(AST.BinExpr)
     def printTree(self, indent=0):
-        pass    
-        # fill in the body
+        print(op)
+        left.printTree()
+        right.printTree()
 
 
+    @addToClass(AST.Instructions)
+    def printTree(self, indent=0):
+        if self.instructions:
+            for instruction in self.instructions:
+                instruction.printTree()
     # define printTree for other classes
     # ...
+
 
 

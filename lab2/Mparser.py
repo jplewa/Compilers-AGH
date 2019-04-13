@@ -1,10 +1,12 @@
-import lab1.scanner as scanner
-import ply.yacc as yacc
 import sys
 sys.path.append("..")
 
+import ply.yacc as yacc
+import lab3.AST as AST
+import lab1.scanner as scanner
 
-tokens = tuple(set(scanner.tokens) - set(("COMMENT",)))
+lexer = scanner.lexer
+tokens = scanner.tokens
 
 precedence = (
     ("nonassoc", 'IF'),
@@ -14,6 +16,7 @@ precedence = (
     ("nonassoc", 'LT', 'GT', "LEQ", "GEQ", "EQ", "NEQ"),
     ("left", 'ADD', 'SUB', 'DOTADD', 'DOTSUB'),
     ("left",  'MUL', 'DIV', "DOTMUL", "DOTDIV"),
+    ("left", '\''),
     ("right", 'NEGATIVE'),
 )
 
@@ -25,22 +28,27 @@ def p_error(p):
     else:
         print("Unexpected end of input")
 
-
+addInstruction
 def p_program(p):
-    """ program : instructions_opt """
-
-
-def p_instructions_opt(p):
-    """ instructions_opt : instructions
-                         |
+    """ program : instructions
+                |
     """
+    if len(p) == 2:
+        p[0] = AST.Program(p[1])
+    else:
+        p[0] = AST.Program()
 
 
 def p_instructions(p):
     """ instructions : instructions instruction
                      | instruction
     """
-
+    if len(p) == 2:
+        
+        p[0] = AST.Instructions(p[1])
+    else:
+        p[0] = AST.Instructions(p[1])
+        p[0].addInstruction(p[2])
 
 def p_instruction(p):
     """ instruction : return
@@ -49,9 +57,11 @@ def p_instruction(p):
                     | print
     """
 
-def p_assignment_instruction(p):
-    """ instruction : variable '=' expression ';' """
 
+def p_assignment_instruction(p):
+    """ instruction : variable '=' expression ';'
+                    | variable '=' error ';'
+    """
 
 def p_arithmetic_assignment_instruction(p):
     """ instruction : variable ADDASSIGN expression ';'
@@ -61,11 +71,11 @@ def p_arithmetic_assignment_instruction(p):
     """
 
 
-
 def p_variable(p):
     """ variable : ID
                  | ID element_list
     """
+
 
 def p_return(p):
     """ return : RETURN expression ';' """
@@ -78,11 +88,14 @@ def p_break(p):
 def p_continue(p):
     """ continue : CONTINUE ';' """
 
+
 def p_value_expression(p):
     """ expression : INTNUM
                    | STRING
                    | FLOAT
     """
+
+
 def p_id_expression(p):
     """ expression : ID """
 
@@ -93,6 +106,7 @@ def p_arithmetic_expression(p):
                    | expression DIV expression
                    | expression MUL expression
     """
+    p[0] = AST.BinExpr(p[1], p[2], p[3])
 
 
 def p_matrix_expression(p):
@@ -104,12 +118,12 @@ def p_matrix_expression(p):
 
 
 def p_relational_expression(p):
-    """ expression : expression EQ expression
-                   | expression NEQ expression
-                   | expression GEQ expression
-                   | expression LEQ expression
-                   | expression GT expression
-                   | expression LT expression
+    """ condition : expression EQ expression
+                  | expression NEQ expression
+                  | expression GEQ expression
+                  | expression LEQ expression
+                  | expression GT expression
+                  | expression LT expression
     """
 
 
@@ -127,6 +141,7 @@ def p_functional_expression(p):
                    | EYE '(' expression ')'
     """
 
+
 def p_list(p):
     """ expression : '[' element_list ']' """
 
@@ -138,29 +153,31 @@ def p_element_list(p):
 
 
 def p_print(p):
-    """ print : PRINT element_list ';'
-              | PRINT '"' element_list '"' ';'
-    """
+    """ print : PRINT element_list ';' """
+
 
 def p_if_instruction(p):
     """ instruction : IF '(' condition ')' instruction %prec IF
-                      | IF '(' condition ')' instruction ELSE instruction"""
+                    | IF '(' condition ')' instruction ELSE instruction
+                    | IF '(' error ')' instruction %prec IF
+                    | IF '(' error ')' instruction ELSE instruction
+    """
 
 
 def p_while_instruction(p):
-    """ instruction : WHILE '(' condition ')' instruction """
+    """ instruction : WHILE '(' condition ')' instruction
+                    | WHILE '(' error ')' instruction
+    """
 
 
 def p_for_instruction(p):
-    """ instruction : FOR variable '=' expression ':' expression instruction """
+    """ instruction : FOR variable '=' expression ':' expression instruction
+                    | FOR variable '=' error ':' expression instruction
+                    | FOR variable '=' expression ':' error instruction
+    """
 
 
 def p_compound_instruction(p):
     """ instruction : '{' instructions '}' """
-
-
-def p_condition(p):
-    """ condition : expression """
-
 
 parser = yacc.yacc()
