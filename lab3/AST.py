@@ -4,7 +4,8 @@ THEN = 'THEN'
 VECTOR = 'VECTOR'
 TRANSPOSE = 'TRANSPOSE'
 
-class Node(object):
+
+class Node():
     pass
 
 
@@ -54,7 +55,6 @@ class Matrix(Node):
         self.vector_list.append(vector)
 
 
-
 class Ref(Node):
     def __init__(self, name, index_list):
         self.keyword = REF
@@ -78,13 +78,12 @@ class Condition(Node):
 
 class FunctionalExpression(Node):
     def __init__(self, func, expr):
-        # self.type = "binexpr"
         self.func = func
         self.expr = expr
 
 
 class Transposition(Node):
-    def __init__(self, op, expr):
+    def __init__(self, _, expr):
         self.keyword = TRANSPOSE
         self.expr = expr
 
@@ -94,7 +93,7 @@ class Negation(Node):
         self.op = op
         self.expr = expr
 
-        
+
 class Program(Node):
     def __init__(self, instructions=None):
         self.instructions = instructions
@@ -137,7 +136,7 @@ class For(Node):
 
 
 class Range(Node):
-    def __init__(self, keyword, start, stop):
+    def __init__(self, _, start, stop):
         self.keyword = RANGE
         self.start = start
         self.stop = stop
@@ -197,5 +196,3 @@ class Continue(Node):
 class Error(Node):
     def __init__(self):
         pass
-
-

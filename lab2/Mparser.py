@@ -1,8 +1,6 @@
-import sys
-sys.path.append("..")
-import ply.yacc as yacc
-import lab3.AST as AST
-import lab1.scanner as scanner
+import ply.yacc as yacc     # pylint: disable=useless-import-alias
+from ..lab3 import AST      # pylint: disable=relative-beyond-top-level
+from ..lab1 import scanner  # pylint: disable=relative-beyond-top-level
 
 
 lexer = scanner.lexer
@@ -23,10 +21,10 @@ precedence = (
 
 def p_error(p):
     if p:
-        print("Syntax error at line {0}, column {1}: LexToken({2}, '{3}')"
-              .format(p.lineno, scanner.find_column(p), p.type, p.value))
+        print(f'Syntax error at line {p.lineno}, column \
+            {scanner.find_column(p)}: LexToken({p.type}, "{p.value}"')
     else:
-        print("Unexpected end of input")
+        print('Unexpected end of input')
 
 
 def p_program(p):
@@ -220,7 +218,7 @@ def p_matrix(p):
 
 
 def p_vector_list(p):
-    """ vector_list : vector_list ',' vector  
+    """ vector_list : vector_list ',' vector
                     | vector
     """
     if len(p) == 2:
