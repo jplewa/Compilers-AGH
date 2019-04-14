@@ -1,14 +1,15 @@
 import sys
-import scanner  # scanner.py is a file you create (not an external library)
-
+from . import scanner
+import os.path
 
 if __name__ == '__main__':
 
     try:
-        filename = sys.argv[1] if len(sys.argv) > 1 else "example.txt"
-        file = open(filename, "r")
+        filename = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
+            os.path.dirname(__file__), 'examples', 'example_full.txt')
+        file = open(filename, 'r')
     except IOError:
-        print("Cannot open {0} file".format(filename))
+        print(f'Cannot open {filename} file')
         sys.exit(0)
 
     text = file.read()
@@ -21,4 +22,4 @@ if __name__ == '__main__':
         if not tok:
             break    # No more input
         column = scanner.find_column(tok)
-        print("(%d,%d): %s(%s)" % (tok.lineno, column, tok.type, tok.value))
+        print(f'({tok.lineno},{column}): {tok.type}({tok.value})')

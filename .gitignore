@@ -106,6 +106,6 @@ venv.bak/
 # extra stuff
 *.pdf
 *.tar
-*/.vscode
+*.vscode
 *.out
 */parsetab.py

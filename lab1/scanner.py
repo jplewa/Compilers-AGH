@@ -1,4 +1,4 @@
-import ply.lex as lex
+import ply.lex as lex   # pylint: disable=useless-import-alias
 
 reserved = {
     'if': 'IF',
@@ -90,7 +90,7 @@ def t_STRING(t):
     return t
 
 
-def t_COMMENT(t):
+def t_COMMENT(_):
     r'\#.*'
 
 
@@ -100,7 +100,7 @@ def t_newline(t):
 
 
 def t_error(t):
-    print("line %d: illegal character '%s'" % (t.lineno, t.value[0]))
+    print(f'line {t.lineno}: illegal character "{t.value[0]}"')
     t.lexer.skip(1)
 
 

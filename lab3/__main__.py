@@ -1,15 +1,13 @@
+from ..lab2 import Mparser  # noqa
+from . import TreePrinter  # noqa
 import sys
-sys.path.append("..")
-import lab2.Mparser as Mparser
-import ply.yacc as yacc
-from TreePrinter import TreePrinter
-
-
+import os.path
 
 if __name__ == '__main__':
 
     try:
-        filename = sys.argv[1] if len(sys.argv) > 1 else "example1.m"
+        filename = sys.argv[1] if len(sys.argv) > 1 else \
+            os.path.join(os.path.dirname(__file__), 'examples', 'example1.m')
         file = open(filename, "r")
     except IOError:
         print("Cannot open {0} file".format(filename))
