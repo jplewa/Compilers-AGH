@@ -57,6 +57,11 @@ def p_instruction(p):
     p[0] = p[1]
 
 
+def p_compound_instruction(p):
+    """ instruction : '{' instructions '}' """
+    p[0] = p[2]
+
+
 def p_assignment_instruction(p):
     """ instruction : variable '=' expression ';'
                     | variable '=' error ';'
@@ -73,6 +78,38 @@ def p_arithmetic_assignment_instruction(p):
     p[0] = AST.ArithmeticAssignment(p[2], p[1], p[3])
 
 
+def p_if_instruction(p):
+    """ instruction : IF '(' condition ')' instruction %prec IF
+                    | IF '(' condition ')' instruction ELSE instruction
+                    | IF '(' error ')' instruction %prec IF
+                    | IF '(' error ')' instruction ELSE instruction
+    """
+    if len(p) == 8:
+        p[0] = AST.If(p[1], p[3], p[5], p[6], p[7])
+    else:
+        p[0] = AST.If(p[1], p[3], p[5])
+
+
+def p_while_instruction(p):
+    """ instruction : WHILE '(' condition ')' instruction
+                    | WHILE '(' error ')' instruction
+    """
+    p[0] = AST.While(p[1], p[3], p[5])
+
+
+def p_for_instruction(p):
+    """ instruction : FOR variable '=' range instruction """
+    p[0] = AST.For(p[1], p[2], p[4], p[5])
+
+
+def p_range(p):
+    """ range : expression ':' expression
+              | error ':' expression
+              | expression ':' error
+    """
+    p[0] = AST.Range(p[2], p[1], p[3])
+
+
 def p_variable(p):
     """ variable : ID
                  | ID '[' index_list ']'
@@ -81,6 +118,23 @@ def p_variable(p):
         p[0] = AST.Variable(p[1])
     else:
         p[0] = AST.Ref(p[1], p[3])
+
+
+def p_index_list(p):
+    """ index_list : index_list ',' variable
+                   | index_list ',' INTNUM
+                   | variable
+                   | INTNUM
+    """
+
+    def _eval(x):
+        return AST.IntNum(x) if isinstance(x, int) else x
+
+    if len(p) == 2:
+        p[0] = AST.IndexList(_eval(p[1]))
+    else:
+        p[0] = p[1]
+        p[0].addIndex(_eval(p[3]))
 
 
 def p_return(p):
@@ -165,21 +219,30 @@ def p_functional_expression(p):
     p[0] = AST.FunctionalExpression(p[1], p[3])
 
 
-def p_index_list(p):
-    """ index_list : index_list ',' variable
-                   | index_list ',' INTNUM
-                   | variable
-                   | INTNUM
+def p_matrix(p):
+    """ expression : '[' vector_list ']'
+                   | vector
     """
-
-    def _eval(x):
-        return AST.IntNum(x) if isinstance(x, int) else x
-
     if len(p) == 2:
-        p[0] = AST.IndexList(_eval(p[1]))
+        p[0] = p[1]
+    else:
+        p[0] = p[2]
+
+
+def p_vector_list(p):
+    """ vector_list : vector_list ',' vector
+                    | vector
+    """
+    if len(p) == 2:
+        p[0] = AST.Matrix(p[1])
     else:
         p[0] = p[1]
-        p[0].addIndex(_eval(p[3]))
+        p[0].addVector(p[3])
+
+
+def p_vector(p):
+    """ vector : '[' number_list ']' """
+    p[0] = p[2]
 
 
 def p_number_list(p):
@@ -202,31 +265,9 @@ def p_number_list(p):
         p[0].addNumber(_eval(p[3]))
 
 
-def p_vector(p):
-    """ vector : '[' number_list ']' """
-    p[0] = p[2]
-
-
-def p_matrix(p):
-    """ expression : '[' vector_list ']'
-                   | vector
-    """
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = p[2]
-
-
-def p_vector_list(p):
-    """ vector_list : vector_list ',' vector
-                    | vector
-    """
-    if len(p) == 2:
-        p[0] = AST.Matrix(p[1])
-    else:
-        p[0] = p[1]
-        p[0].addVector(p[3])
-
+def p_print(p):
+    """ print : PRINT element_list ';' """
+    p[0] = AST.Print(p[1], p[2])
 
 def p_element_list(p):
     """ element_list : element_list ',' expression
@@ -239,46 +280,7 @@ def p_element_list(p):
         p[0].addElement(p[3])
 
 
-def p_print(p):
-    """ print : PRINT element_list ';' """
-    p[0] = AST.Print(p[1], p[2])
 
-
-def p_if_instruction(p):
-    """ instruction : IF '(' condition ')' instruction %prec IF
-                    | IF '(' condition ')' instruction ELSE instruction
-                    | IF '(' error ')' instruction %prec IF
-                    | IF '(' error ')' instruction ELSE instruction
-    """
-    if len(p) == 8:
-        p[0] = AST.If(p[1], p[3], p[5], p[6], p[7])
-    else:
-        p[0] = AST.If(p[1], p[3], p[5])
-
-
-def p_while_instruction(p):
-    """ instruction : WHILE '(' condition ')' instruction
-                    | WHILE '(' error ')' instruction
-    """
-    p[0] = AST.While(p[1], p[3], p[5])
-
-
-def p_for_instruction(p):
-    """ instruction : FOR variable '=' range instruction """
-    p[0] = AST.For(p[1], p[2], p[4], p[5])
-
-
-def p_range(p):
-    """ range : expression ':' expression
-              | error ':' expression
-              | expression ':' error
-    """
-    p[0] = AST.Range(p[2], p[1], p[3])
-
-
-def p_compound_instruction(p):
-    """ instruction : '{' instructions '}' """
-    p[0] = p[2]
 
 
 parser = yacc.yacc()
