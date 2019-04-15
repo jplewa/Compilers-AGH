@@ -79,6 +79,7 @@ def p_arithmetic_assignment_instruction(p):
 
 
 def p_if_instruction(p):
+    # error
     """ instruction : IF '(' condition ')' instruction %prec IF
                     | IF '(' condition ')' instruction ELSE instruction
                     | IF '(' error ')' instruction %prec IF
@@ -105,7 +106,6 @@ def p_for_instruction(p):
 def p_range(p):
     """ range : expression ':' expression
               | error ':' expression
-              | expression ':' error
     """
     p[0] = AST.Range(p[2], p[1], p[3])
 
@@ -208,7 +208,7 @@ def p_negation_expression(p):
 
 def p_transposition_expression(p):
     """ expression : expression "'" """
-    p[0] = AST.Transposition(p[2], p[1])
+    p[0] = AST.Transposition(p[1])
 
 
 def p_functional_expression(p):
@@ -278,9 +278,6 @@ def p_element_list(p):
     else:
         p[0] = p[1]
         p[0].addElement(p[3])
-
-
-
 
 
 parser = yacc.yacc()

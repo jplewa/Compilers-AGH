@@ -150,7 +150,7 @@ class Negation(Node):
 
 
 class Transposition(Node):
-    def __init__(self, _, expr):
+    def __init__(self, expr):
         self.keyword = TRANSPOSE
         self.expr = expr
 
