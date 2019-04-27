@@ -31,7 +31,7 @@ class TreePrinter:
     def printTree(self, indent=0):
         if self.instructions:
             for instruction in self.instructions:
-                instruction.printTree(indent)
+                instruction.printTree(indent)   
 
     @addToClass(AST.Assignment)
     def printTree(self, indent=0):
@@ -114,10 +114,9 @@ class TreePrinter:
     def printTree(self, indent=0):
         self.printWithIndent(self.value, indent)
 
-    # @addToClass(AST.Error)
-    # def printTree(self, indent=0):
-    #     pass
-    #     # fill in the body
+    @addToClass(AST.Error)
+    def printTree(self, indent=0):
+        self.printWithIndent(f'SYNTAX ERROR: {self.value}', indent)
 
     @addToClass(AST.BinExpr)
     def printTree(self, indent=0):

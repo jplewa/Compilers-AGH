@@ -21,8 +21,8 @@ precedence = (
 
 def p_error(p):
     if p:
-        print(f'Syntax error at line {p.lineno}, column \
-            {scanner.find_column(p)}: LexToken({p.type}, "{p.value}"')
+        print(f'Syntax error at line {p.lineno}, column '
+              f'{scanner.find_column(p)} LexToken({p.type}, "{p.value}")')
     else:
         print('Unexpected end of input')
 
@@ -32,7 +32,7 @@ def p_program(p):
                 |
     """
     if len(p) == 2:
-        p[0] = AST.Program(p[1])
+        p[0] = AST.Program(p[1], p.lineno(1), find_column(p))
     else:
         p[0] = AST.Program()
 
@@ -42,7 +42,7 @@ def p_instructions(p):
                      | instruction
     """
     if len(p) == 2:
-        p[0] = AST.Instructions(p[1])
+        p[0] = AST.Instructions(p[1], p.lineno(1), find_column(p))
     else:
         p[0] = p[1]
         p[0].addInstruction(p[2])
@@ -63,10 +63,13 @@ def p_compound_instruction(p):
 
 
 def p_assignment_instruction(p):
-    """ instruction : variable '=' expression ';'
-                    | variable '=' error ';'
-    """
-    p[0] = AST.Assignment(p[2], p[1], p[3])
+    """ instruction : variable '=' expression ';' """
+    p[0] = AST.Assignment(p[2], p[1], p[3], p.lineno(2), find_column(p, 2))
+
+
+def p_assignment_instruction_err(p):
+    """ instruction : variable '=' error ';' """
+    p[0] = AST.Assignment(p[2], p[1], AST.Error(p[3], p.lineno(3), find_column(p, 3)), p.lineno(2), find_column(p, 2))
 
 
 def p_arithmetic_assignment_instruction(p):
@@ -75,39 +78,54 @@ def p_arithmetic_assignment_instruction(p):
                     | variable DIVASSIGN expression ';'
                     | variable MULASSIGN expression ';'
     """
-    p[0] = AST.ArithmeticAssignment(p[2], p[1], p[3])
+    p[0] = AST.ArithmeticAssignment(
+        p[2], p[1], p[3], p.lineno(2), find_column(p, 2))
 
 
 def p_if_instruction(p):
-    # error
     """ instruction : IF '(' condition ')' instruction %prec IF
                     | IF '(' condition ')' instruction ELSE instruction
-                    | IF '(' error ')' instruction %prec IF
-                    | IF '(' error ')' instruction ELSE instruction
     """
     if len(p) == 8:
-        p[0] = AST.If(p[1], p[3], p[5], p[6], p[7])
+        p[0] = AST.If(p[1], p[3], p[5], p.lineno(1), find_column(p), p[6], p[7])
     else:
-        p[0] = AST.If(p[1], p[3], p[5])
+        p[0] = AST.If(p[1], p[3], p[5], p.lineno(1), find_column(p))
+
+
+def p_if_instruction_err(p):
+    """ instruction : IF '(' error ')' instruction %prec IF
+                    | IF '(' error ')' instruction ELSE instruction"""
+    if len(p) == 8:
+        p[0] = AST.If(p[1], AST.Error(p[3], p.lineno(3), find_column(
+            p, 3)), p[5], p.lineno(1), find_column(p), p[6], p[7])
+    else:
+        p[0] = AST.If(p[1], AST.Error(p[3], p.lineno(3), find_column(
+            p, 3)), p[5], p.lineno(1), find_column(p))
 
 
 def p_while_instruction(p):
-    """ instruction : WHILE '(' condition ')' instruction
-                    | WHILE '(' error ')' instruction
-    """
-    p[0] = AST.While(p[1], p[3], p[5])
+    """ instruction : WHILE '(' condition ')' instruction """
+    p[0] = AST.While(p[1], p[3], p[5], p.lineno(1), find_column(p))
 
 
+def p_while_instruction_err(p):
+    """ instruction : WHILE '(' error ')' instruction"""
+    p[0] = AST.While(p[1], AST.Error(p[3], p.lineno(3), find_column(
+        p, 3)), p[5], p.lineno(1), find_column(p))
+    
 def p_for_instruction(p):
     """ instruction : FOR variable '=' range instruction """
-    p[0] = AST.For(p[1], p[2], p[4], p[5])
+    p[0] = AST.For(p[1], p[2], p[4], p[5], p.lineno(1), find_column(p))
 
 
 def p_range(p):
-    """ range : expression ':' expression
-              | error ':' expression
-    """
-    p[0] = AST.Range(p[2], p[1], p[3])
+    """ range : expression ':' expression """
+    p[0] = AST.Range(p[2], p[1], p[3], p.lineno(2), find_column(p,2))
+
+
+def p_range_err(p):
+    """ range : error ':' expression """
+    p[0] = AST.Range(AST.Error(p[1], p.lineno(1), find_column(p)), p[1], p[3], p.lineno(1), find_column(p))
 
 
 def p_variable(p):
@@ -115,9 +133,9 @@ def p_variable(p):
                  | ID '[' index_list ']'
     """
     if len(p) == 2:
-        p[0] = AST.Variable(p[1])
+        p[0] = AST.Variable(p[1], p.lineno(1), find_column(p))
     else:
-        p[0] = AST.Ref(p[1], p[3])
+        p[0] = AST.Ref(p[1], p[3], p.lineno(1), find_column(p))
 
 
 def p_index_list(p):
@@ -128,10 +146,10 @@ def p_index_list(p):
     """
 
     def _eval(x):
-        return AST.IntNum(x) if isinstance(x, int) else x
+        return AST.IntNum(x, p.lineno(1), find_column(p)) if isinstance(x, int) else x
 
     if len(p) == 2:
-        p[0] = AST.IndexList(_eval(p[1]))
+        p[0] = AST.IndexList(_eval(p[1]), p.lineno(1), find_column(p))
     else:
         p[0] = p[1]
         p[0].addIndex(_eval(p[3]))
@@ -139,37 +157,37 @@ def p_index_list(p):
 
 def p_return(p):
     """ return : RETURN expression ';' """
-    p[0] = AST.Return(p[1], p[2])
+    p[0] = AST.Return(p[1], p[2], p.lineno(1), find_column(p))
 
 
 def p_break(p):
     """ break : BREAK ';' """
-    p[0] = AST.Break(p[1])
+    p[0] = AST.Break(p[1], p.lineno(1), find_column(p))
 
 
 def p_continue(p):
     """ continue : CONTINUE ';' """
-    p[0] = AST.Continue(p[1])
+    p[0] = AST.Continue(p[1], p.lineno(1), find_column(p))
 
 
 def p_intnum_expression(p):
     """ expression : INTNUM """
-    p[0] = AST.IntNum(p[1])
+    p[0] = AST.IntNum(p[1], p.lineno(1), find_column(p))
 
 
 def p_float_expression(p):
     """ expression : FLOAT """
-    p[0] = AST.FloatNum(p[1])
+    p[0] = AST.FloatNum(p[1], p.lineno(1), find_column(p))
 
 
 def p_string_expression(p):
     """ expression : STRING """
-    p[0] = AST.String(p[1])
+    p[0] = AST.String(p[1], p.lineno(1), find_column(p))
 
 
 def p_id_expression(p):
-    """ expression : ID """
-    p[0] = AST.Variable(p[1])
+    """ expression : variable """
+    p[0] = p[1]
 
 
 def p_arithmetic_expression(p):
@@ -178,7 +196,7 @@ def p_arithmetic_expression(p):
                    | expression DIV expression
                    | expression MUL expression
     """
-    p[0] = AST.BinExpr(p[2], p[1], p[3])
+    p[0] = AST.BinExpr(p[2], p[1], p[3], p.lineno(2), find_column(p, 2))
 
 
 def p_matrix_expression(p):
@@ -187,7 +205,20 @@ def p_matrix_expression(p):
                    | expression DOTMUL expression
                    | expression DOTDIV expression
     """
-    p[0] = AST.BinExpr(p[2], p[1], p[3])
+    p[0] = AST.BinExpr(p[2], p[1], p[3], p.lineno(2), find_column(p, 2))
+
+
+def p_bin_expression_err(p):
+    """ expression : expression ADD error
+                   | expression SUB error
+                   | expression DIV error
+                   | expression MUL error
+                   | expression DOTADD error
+                   | expression DOTSUB error
+                   | expression DOTMUL error
+                   | expression DOTDIV error
+    """
+    p[0] = AST.BinExpr(p[2], p[1], AST.Error(p[3], p.lineno(3), find_column(p, 3)), p.lineno(2), find_column(p, 2))
 
 
 def p_relational_expression(p):
@@ -198,25 +229,45 @@ def p_relational_expression(p):
                   | expression GT expression
                   | expression LT expression
     """
-    p[0] = AST.Condition(p[2], p[1], p[3])
+    p[0] = AST.Condition(p[2], p[1], p[3], p.lineno(1), find_column(p))
+
+
+def p_relational_expression_err(p):
+    """ condition : expression EQ error
+                  | expression NEQ error
+                  | expression GEQ error
+                  | expression LEQ error
+                  | expression GT error
+                  | expression LT error
+    """
+    p[0] = AST.Condition(p[2], p[1], AST.Error(p[3], p.lineno(3), find_column(p, 3)), p.lineno(1), find_column(p))
 
 
 def p_negation_expression(p):
     """ expression : SUB expression %prec NEGATIVE """
-    p[0] = AST.Negation(p[1], p[2])
+    p[0] = AST.Negation(p[1], p[2], p.lineno(1), find_column(p))
 
 
 def p_transposition_expression(p):
     """ expression : expression "'" """
-    p[0] = AST.Transposition(p[1])
+    p[0] = AST.Transposition(p[1], p.lineno(1), find_column(p))
 
 
 def p_functional_expression(p):
-    """ expression : ZEROS '(' expression ')'
-                   | ONES '(' expression ')'
-                   | EYE '(' expression ')'
+    """ expression : ZEROS '(' index_list ')'
+                   | ONES '(' index_list ')'
+                   | EYE '(' index_list ')'
     """
-    p[0] = AST.FunctionalExpression(p[1], p[3])
+    p[0] = AST.FunctionalExpression(p[1], p[3], p.lineno(1), find_column(p))
+
+
+def p_functional_expression_err(p):
+    """ expression : ZEROS '(' error ')'
+                   | ONES '(' error ')'
+                   | EYE '(' error ')'
+    """
+    p[0] = AST.FunctionalExpression(p[1], AST.Error(p[3], p.lineno(3), 
+                                    find_column(p, 3)), p.lineno(1), find_column(p))
 
 
 def p_matrix(p):
@@ -226,6 +277,8 @@ def p_matrix(p):
     if len(p) == 2:
         p[0] = p[1]
     else:
+        p[2].lineno = p.lineno(1)
+        p[2].colno = find_column(p, 1)
         p[0] = p[2]
 
 
@@ -234,7 +287,8 @@ def p_vector_list(p):
                     | vector
     """
     if len(p) == 2:
-        p[0] = AST.Matrix(p[1])
+        p[0] = AST.Matrix(p.lineno(1), find_column(p, 1))
+        p[0].addVector(p[1])
     else:
         p[0] = p[1]
         p[0].addVector(p[3])
@@ -243,6 +297,8 @@ def p_vector_list(p):
 def p_vector(p):
     """ vector : '[' number_list ']' """
     p[0] = p[2]
+    p[2].lineno = p.lineno(1)
+    p[2].colno = find_column(p, 1) 
 
 
 def p_number_list(p):
@@ -253,31 +309,36 @@ def p_number_list(p):
                     | INTNUM
                     | FLOAT
     """
-
-    def _eval(x):
-        return AST.IntNum(x) if isinstance(x, int) \
-            else AST.FloatNum(x) if isinstance(x, float) else x
+    def _eval(x, n):
+        return AST.IntNum(x, p.lineno(n), find_column(p, n)) if isinstance(x, int) \
+            else AST.FloatNum(x, p.lineno(n), find_column(p, n)) if isinstance(x, float) else x
 
     if len(p) == 2:
-        p[0] = AST.Vector(_eval(p[1]))
+        p[0] = AST.Vector(_eval(p[1], 1), p.lineno(1), find_column(p))
     else:
         p[0] = p[1]
-        p[0].addNumber(_eval(p[3]))
+        p[0].addNumber(_eval(p[3], 3))
 
 
 def p_print(p):
     """ print : PRINT element_list ';' """
-    p[0] = AST.Print(p[1], p[2])
+    p[0] = AST.Print(p[1], p[2], p.lineno(1), find_column(p))
+
 
 def p_element_list(p):
     """ element_list : element_list ',' expression
                      | expression
     """
     if len(p) == 2:
-        p[0] = AST.Elements(p[1])
+        p[0] = AST.Elements(p[1], p.lineno(1), find_column(p))
     else:
         p[0] = p[1]
         p[0].addElement(p[3])
+
+
+def find_column(production, num=1):
+    line_start = lexer.lexdata.rfind('\n', 0, production.lexpos(num)) + 1
+    return (production.lexpos(num) - line_start) + 1
 
 
 parser = yacc.yacc()

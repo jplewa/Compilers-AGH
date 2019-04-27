@@ -11,6 +11,17 @@ class VariableSymbol(Symbol):
         return str(self.type_)
 
 
+class MatrixSymbol(Symbol):
+    def __init__(self, name, type_, inner_type_, dims):
+        self.name = name
+        self.type_ = type_
+        self.inner_type_ = inner_type_
+        self.dims = dims
+
+    def __str__(self):
+        return str(self.type_)
+
+
 class SymbolTable():
 
     def __init__(self, parent, name):   # parent scope and symbol table name
@@ -22,6 +33,7 @@ class SymbolTable():
         self.variables[name] = symbol
 
     def get(self, name):  # get variable symbol or fundef from <name> entry
+        # print(">>>>>", self.variables)
         symbol = self.variables.get(name, None)
         if symbol is None and self.parent is not None:
             symbol = self.getParentScope().get(name)
@@ -35,3 +47,15 @@ class SymbolTable():
 
     def popScope(self):
         return self.parent
+
+    def __str__(self):
+        parent = self.getParentScope()
+        result = ''
+
+        while parent is not None:
+            result += parent.__str__()
+            result += '\n\n'
+            parent = parent.getParentScope()
+
+        result += {key: value.__str__() for key, value in self.variables.items()}.__str__()
+        return result

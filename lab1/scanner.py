@@ -100,7 +100,7 @@ def t_newline(t):
 
 
 def t_error(t):
-    print(f'line {t.lineno}: illegal character "{t.value[0]}"')
+    print(f'Illegal character at line {t.lineno}, column {find_column(t)}: "{t.value[0]}"')
     t.lexer.skip(1)
 
 
