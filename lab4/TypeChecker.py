@@ -177,15 +177,16 @@ class TypeChecker(NodeVisitor):
                           f'{node.colno}: {type_} {node.name}, dimensions: {list(dims)}, index: {index_list}')
                     return ErrorOutOfBounds()
 
-            # if type_ == MATRIX:
-            #     if len(index_list) == 2:
-            #         type__ = self.visit(symbol.vector_list[index_list[0]].number_list[index_list[1]])
-            #         print(type_)
-            #         return type__
+            if type_ == MATRIX:
+                if len(index_list) == 1:
+                    return VECTOR
+                if len(index_list) == 2:
+                    type__ = symbol.inner_type_
+                    return type__
             return symbol.inner_type_
         else:
             print(f'Type error at line {node.lineno}, column '
-                  f'{node.colno}: {type_} {node.index_list}')
+                  f'{node.colno}: {type_} {[x.value for x in node.index_list.index_list]}')
             return ErrorType()
 
 
@@ -221,19 +222,78 @@ class TypeChecker(NodeVisitor):
             return ErrorUndefined()
         return symbol.type_
 
+
+    def eval_BinExpr(self, node):
+        tail = [node.expr.right]
+        head = node.expr.left
+        while isinstance(head, AST.BinExpr):
+            tail.append(head.right)
+            head = head.left
+        tail.append(head)
+        all_dims = []
+        all_inner_types = []
+        for expr in tail:
+            if isinstance(expr, AST.Variable):
+                type_ = self.visit(expr)
+                if type_ in [VECTOR, MATRIX]:
+                    inner_type_ = self.symbol_table.get(expr.name).inner_type_
+                    dims = self.symbol_table.get(expr.name).dims                       
+                else:
+                    inner_type_ = type_
+                    dims = None
+            elif isinstance(expr, AST.Vector):
+                type_ = self.visit(expr)
+                if not isinstance(type_, ErrorBase):
+                    inner_type_ = self.visit(expr.number_list[0])
+                    dims = (len(expr.number_list),)
+            elif isinstance(expr, AST.Matrix):
+                type_ = self.visit(expr)
+                if not isinstance(type_, ErrorBase):
+                    inner_type_ = self.visit(expr.vector_list[0].number_list[0])
+                    dims = (len(expr.vector_list), len(expr.vector_list[0].number_list),)
+            else:
+                # print(type(expr))
+                type_ = self.visit(expr)
+                inner_type_ = type_
+                dims = None
+            all_dims += [dims]
+            all_inner_types += [inner_type_]         
+        result_dim = None
+        all_dims = set([dim for dim in all_dims if dim is not None])
+        if len(all_dims) > 1:
+            print(f'Matrix dimension error at line {node.lineno}, column '
+                  f'{node.colno}: {all_dims}')
+            result_dim = ErrorDimensions()
+        elif len(all_dims) == 1:
+            result_dim = list(all_dims)[0]
+        else:
+            result_dim = None
+        
+        return (INTNUM if all([b == INTNUM for b in all_inner_types]) else FLOAT), result_dim
+
     def visit_Assignment(self, node):
         type_ = self.visit(node.expr)
         if not isinstance(type_, ErrorBase):
-            if type_ == MATRIX and isinstance(node.expr, AST.Matrix):
+            if type_ == VECTOR and isinstance(node.expr, AST.Ref):
+                inner_type_ = self.symbol_table.get(node.expr.name).inner_type_
+                dims = (self.symbol_table.get(node.expr.name).dims[1],)
+                self.symbol_table.put(node.var.name, MatrixSymbol(node.var.name,
+                                                                  type_, inner_type_, dims))
+            elif type_ == MATRIX and isinstance(node.expr, AST.Matrix):
                 inner_type_ = self.visit(node.expr.vector_list[0].number_list[0])
                 self.symbol_table.put(node.var.name, MatrixSymbol(node.var.name,
                                                                   type_, inner_type_,
                                                                   (len(node.expr.vector_list),
                                                                           len(node.expr.vector_list[0].number_list),)))
-            elif type_ == VECTOR and isinstance(node.expr, AST.Matrix):
+            elif type_ == VECTOR and isinstance(node.expr, AST.Vector):
                 inner_type_ = self.visit(node.expr.number_list[0])
                 self.symbol_table.put(node.var.name, MatrixSymbol(node.var.name,
                                                                   type_, inner_type_, (len(node.expr.number_list),)))
+            elif (type_ in [VECTOR, MATRIX]) and isinstance(node.expr, AST.BinExpr):
+                inner_type_, dims = self.eval_BinExpr(node)
+                if not isinstance(dims, ErrorBase):
+                    self.symbol_table.put(node.var.name, MatrixSymbol(node.var.name,
+                                                                      type_, inner_type_, dims))
             else:
                 self.symbol_table.put(
                     node.var.name, VariableSymbol(node.var.name, type_))
@@ -247,10 +307,16 @@ class TypeChecker(NodeVisitor):
                   f'{node.colno}: {number_of_vectors} x {vector_sizes}')
             return ErrorDimensions()
 
+        inner_types_ = []
         for vector in node.vector_list:
             type_ = self.visit(vector)
+            inner_types_ += [self.visit(vector.number_list[0])]
             if isinstance(type_, ErrorBase):
                 return type_
+        if len(set(inner_types_)) != 1:
+            print(f'Mixed inner matrix types at line {node.lineno}, column '
+                  f'{node.colno}: {inner_types_}')
+            return ErrorType()
 
         return MATRIX
 
