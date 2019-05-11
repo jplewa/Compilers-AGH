@@ -19,7 +19,7 @@ class TreePrinter:
         print(f'{"|  " * indent}{value}')
 
     @addToClass(AST.Node)
-    def printTree(self):
+    def printTree(self, indent=0):
         raise Exception(f'printTree not defined in class \
             {self.__class__.__name__}')
 
@@ -31,7 +31,12 @@ class TreePrinter:
     def printTree(self, indent=0):
         if self.instructions:
             for instruction in self.instructions:
-                instruction.printTree(indent)   
+                instruction.printTree(indent)
+
+    @addToClass(AST.Block)
+    def printTree(self, indent=0):
+        self.printWithIndent('BLOCK',indent)
+        self.instructions.printTree(indent + 1)
 
     @addToClass(AST.Assignment)
     def printTree(self, indent=0):
@@ -59,7 +64,7 @@ class TreePrinter:
     def printTree(self, indent=0):
         self.printWithIndent(self._while, indent)
         self.cond.printTree(indent + 1)
-        self.expr.printTree(indent + 1)
+        self.instr.printTree(indent + 1)
 
     @addToClass(AST.For)
     def printTree(self, indent=0):
@@ -143,7 +148,7 @@ class TreePrinter:
     @addToClass(AST.FunctionalExpression)
     def printTree(self, indent=0):
         self.printWithIndent(self.func, indent)
-        self.expr.printTree(indent + 1)
+        self.dims.printTree(indent + 1)
 
     @addToClass(AST.Matrix)
     def printTree(self, indent=0):

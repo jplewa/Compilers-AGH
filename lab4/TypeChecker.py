@@ -74,31 +74,31 @@ for op in relational_ops:
     types[op][FLOAT][INTNUM] = BOOLEAN
     types[op][INTNUM][FLOAT] = BOOLEAN
 
+types[':'][INTNUM][INTNUM] = INTNUM
 
-types['=='][STRING][STRING] = BOOLEAN
-types['!='][STRING][STRING] = BOOLEAN
+# types['=='][STRING][STRING] = BOOLEAN
+# types['!='][STRING][STRING] = BOOLEAN
 # types['=='][MATRIX][MATRIX] = BOOLEAN
 # types['!='][MATRIX][MATRIX] = BOOLEAN
 # types['=='][VECTOR][VECTOR] = BOOLEAN
 # types['!='][VECTOR][VECTOR] = BOOLEAN
 
 
-types['-'][INTNUM] = INTNUM
-types['-'][FLOAT] = FLOAT
+# types['-'][INTNUM] = INTNUM
+# types['-'][FLOAT] = FLOAT
 
-types['zeros'][INTNUM] = MATRIX
-types['eye'][INTNUM] = MATRIX
-types['ones'][INTNUM] = MATRIX
-
-types['+'][STRING][STRING] = STRING
+# types['+'][STRING][STRING] = STRING
 
 
 class NodeVisitor():
 
-    def visit(self, node):
+    def visit(self, node, name=None):
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
-        return visitor(node)
+        if name is None:
+            return visitor(node)
+        else:
+            return visitor(node, name)
 
     def generic_visit(self, node):
 
@@ -195,8 +195,9 @@ class TypeChecker(NodeVisitor):
             type_ = self.visit(index)
             if type_ != INTNUM:
                 print(f'Index error at line {node.lineno}, column 'f'{node.colno}: {type_}')
+                return type_
         return INTNUM
-                
+
 
     def visit_Program(self, node):
         self.visit(node.instructions)
@@ -224,8 +225,8 @@ class TypeChecker(NodeVisitor):
 
 
     def eval_BinExpr(self, node):
-        tail = [node.expr.right]
-        head = node.expr.left
+        tail = [node.right]
+        head = node.left
         while isinstance(head, AST.BinExpr):
             tail.append(head.right)
             head = head.left
@@ -252,7 +253,6 @@ class TypeChecker(NodeVisitor):
                     inner_type_ = self.visit(expr.vector_list[0].number_list[0])
                     dims = (len(expr.vector_list), len(expr.vector_list[0].number_list),)
             else:
-                # print(type(expr))
                 type_ = self.visit(expr)
                 inner_type_ = type_
                 dims = None
@@ -268,7 +268,7 @@ class TypeChecker(NodeVisitor):
             result_dim = list(all_dims)[0]
         else:
             result_dim = None
-        
+
         return (INTNUM if all([b == INTNUM for b in all_inner_types]) else FLOAT), result_dim
 
     def visit_Assignment(self, node):
@@ -277,26 +277,24 @@ class TypeChecker(NodeVisitor):
             if type_ == VECTOR and isinstance(node.expr, AST.Ref):
                 inner_type_ = self.symbol_table.get(node.expr.name).inner_type_
                 dims = (self.symbol_table.get(node.expr.name).dims[1],)
-                self.symbol_table.put(node.var.name, MatrixSymbol(node.var.name,
-                                                                  type_, inner_type_, dims))
+                self.symbol_table.put(node.var.name, MatrixSymbol(node.var.name, type_, inner_type_, dims))
             elif type_ == MATRIX and isinstance(node.expr, AST.Matrix):
                 inner_type_ = self.visit(node.expr.vector_list[0].number_list[0])
-                self.symbol_table.put(node.var.name, MatrixSymbol(node.var.name,
-                                                                  type_, inner_type_,
-                                                                  (len(node.expr.vector_list),
-                                                                          len(node.expr.vector_list[0].number_list),)))
+                dims = (len(node.expr.vector_list), len(node.expr.vector_list[0].number_list),)
+                self.symbol_table.put(node.var.name, MatrixSymbol(node.var.name, type_, inner_type_, dims))
             elif type_ == VECTOR and isinstance(node.expr, AST.Vector):
                 inner_type_ = self.visit(node.expr.number_list[0])
-                self.symbol_table.put(node.var.name, MatrixSymbol(node.var.name,
-                                                                  type_, inner_type_, (len(node.expr.number_list),)))
+                dims = (len(node.expr.number_list),)
+                self.symbol_table.put(node.var.name, MatrixSymbol(node.var.name, type_, inner_type_, dims))
             elif (type_ in [VECTOR, MATRIX]) and isinstance(node.expr, AST.BinExpr):
-                inner_type_, dims = self.eval_BinExpr(node)
+                inner_type_, dims = self.eval_BinExpr(node.expr)
                 if not isinstance(dims, ErrorBase):
-                    self.symbol_table.put(node.var.name, MatrixSymbol(node.var.name,
-                                                                      type_, inner_type_, dims))
+                    self.symbol_table.put(node.var.name, MatrixSymbol(node.var.name, type_, inner_type_, dims))
+            elif (type_ in [VECTOR, MATRIX]) and isinstance(node.expr, AST.FunctionalExpression):
+                dims = tuple([x.value for x in node.expr.dims.index_list])
+                self.symbol_table.put(node.var.name, MatrixSymbol(node.var.name, type_, INTNUM, dims))
             else:
-                self.symbol_table.put(
-                    node.var.name, VariableSymbol(node.var.name, type_))
+                self.symbol_table.put(node.var.name, VariableSymbol(node.var.name, type_))
 
     def visit_Matrix(self, node):
         number_of_vectors = len(node.vector_list) 
@@ -351,6 +349,148 @@ class TypeChecker(NodeVisitor):
         else:
             self.symbol_table.put(
                 node.var.name, VariableSymbol(node.var, type_))
+
+    def visit_FunctionalExpression(self, node):
+        type_ = self.visit(node.dims)
+        if isinstance(type_, ErrorBase):
+            return type_
+        
+        if len (node.dims.index_list) > 2:
+            print(f'Too many arguments at {node.lineno}, column '
+                  f'{node.colno}: function {node.func}, expected 1D or 2D')
+            return ErrorDimensions()
+        
+        if len(node.dims.index_list) == 2:
+            return MATRIX
+        if len(node.dims.index_list) == 1:
+            return VECTOR
+
+    def visit_Continue(self, node):
+        name = self.symbol_table.name
+        parent = self.symbol_table.parent
+
+        if name not in ['while', 'for']:
+            while parent is not None:
+                if parent.name in  ['while', 'for']:
+                    name = parent.name
+                    break
+                parent = parent.parent
+                
+        if name not in ['while', 'for']:
+            print(f'Continue instruction outside of loop at line {node.lineno}, column '
+                  f'{node.colno}')
+
+    def visit_Break(self, node):
+        name = self.symbol_table.name
+        parent = self.symbol_table.parent
+
+        if name not in ['while', 'for']:
+            while parent is not None:
+                if parent.name in  ['while', 'for']:
+                    name = parent.name
+                    break
+                parent = parent.parent
+                
+        if name not in ['while', 'for']:
+            print(f'Break instruction outside of loop at line {node.lineno}, column '
+                  f'{node.colno}')
+            
+    def visit_Block(self, node, name='block'):
+        self.symbol_table = self.symbol_table.pushScope(name)
+        for instruction in node.instructions.instructions:
+            self.visit(instruction)
+        self.symbol_table.prettyPrint()
+        self.symbol_table = self.symbol_table.popScope()
+
+    def visit_Condition(self, node):
+        if isinstance(node.left, AST.BinExpr):
+            if isinstance(self.eval_BinExpr(node.left), ErrorBase):
+                return ErrorBase()
+        if isinstance(node.right, AST.BinExpr):
+            if isinstance(self.eval_BinExpr(node.right), ErrorBase):
+                return ErrorBase()
+
+        type_left = self.visit(node.left)
+        type_right = self.visit(node.right)
+
+        if isinstance(type_left, ErrorBase):
+            return type_left
+
+        if isinstance(type_right, ErrorBase):
+            return type_right
+
+        type_ = types[node.op][type_left][type_right]
+
+
+        if isinstance(type_, ErrorBase):
+            print(f'Type error at line {node.lineno}, column {node.colno}: {type_left} {node.op} {type_right}')
+        return type_
+
+    def visit_If(self, node):
+        self.visit(node.cond)
+
+        if not isinstance(node.if_instr, AST.Block):
+            self.symbol_table = self.symbol_table.pushScope('if')
+            self.visit(node.if_instr, None)
+            self.symbol_table.prettyPrint()
+            self.symbol_table = self.symbol_table.popScope()
+        else:
+            self.visit(node.if_instr, 'if')
+            
+        if node.else_instr is not None:
+            if not isinstance(node.else_instr, AST.Block):
+                self.symbol_table = self.symbol_table.pushScope('else')
+                self.visit(node.else_instr, None)
+                self.symbol_table.prettyPrint()
+                self.symbol_table = self.symbol_table.popScope()
+            else:
+                self.visit(node.else_instr, 'else')
+        
+        
+    def visit_Range(self, node):
+        start_type = self.visit(node.start)
+        stop_type = self.visit(node.stop)
+        
+        if isinstance(node.start, AST.BinExpr):
+            type_ = self.eval_BinExpr(node.start)
+            if isinstance(type_, ErrorBase):
+                return type_
+
+        if isinstance(node.stop, AST.BinExpr):
+            type_ = self.eval_BinExpr(node.stop)
+            if isinstance(type_, ErrorBase):
+                return type_
+
+        type_ = types[':'][start_type][stop_type]
+        if isinstance(type_, ErrorType):
+            print(f'Type error in range at line {node.lineno}, column '
+                  f'{node.colno}: {start_type} : {start_type}') 
+        return type_
+
+    def visit_For(self, node):
+        # for: var range instr
+        # range: start stop
+        type_ = self.visit(node._range)
+        if not isinstance(type_, ErrorType):
+            self.symbol_table.put(node.var.name, VariableSymbol(node.var.name, type_))
+
+
+
+        self.visit(node.instr, 'for')
+
+        #TODO: RZECZY
+
+    def visit_While(self, node):
+        self.visit(node.cond)
+
+        if not isinstance(node.instr, AST.Block):
+            self.symbol_table = self.symbol_table.pushScope('while')
+            self.visit(node.instr, None)
+            self.symbol_table.prettyPrint()
+            self.symbol_table = self.symbol_table.popScope()
+        else:
+            self.visit(node.instr, 'while')
+
 
     def visit_Error(self, node):
         return ErrorSyntax()

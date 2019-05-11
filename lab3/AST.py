@@ -64,10 +64,10 @@ class If(Node):
 
 
 class While(Node):
-    def __init__(self, _while, cond, expr, lineno, colno):
+    def __init__(self, _while, cond, instr, lineno, colno):
         self._while = str.upper(_while)
         self.cond = cond
-        self.expr = expr
+        self.instr = instr
         self.lineno = lineno
         self.colno = colno
 
@@ -195,9 +195,9 @@ class Transposition(Node):
 
 
 class FunctionalExpression(Node):
-    def __init__(self, func, expr, lineno, colno):
+    def __init__(self, func, dims, lineno, colno):
         self.func = func
-        self.expr = expr
+        self.dims = dims
         self.lineno = lineno
         self.colno = colno
 

@@ -59,7 +59,7 @@ def p_instruction(p):
 
 def p_compound_instruction(p):
     """ instruction : '{' instructions '}' """
-    p[0] = p[2]
+    p[0] = AST.Block(p[2], p.lineno(2), find_column(p, 2))
 
 
 def p_assignment_instruction(p):
@@ -105,6 +105,7 @@ def p_if_instruction_err(p):
 
 def p_while_instruction(p):
     """ instruction : WHILE '(' condition ')' instruction """
+
     p[0] = AST.While(p[1], p[3], p[5], p.lineno(1), find_column(p))
 
 
@@ -229,7 +230,7 @@ def p_relational_expression(p):
                   | expression GT expression
                   | expression LT expression
     """
-    p[0] = AST.Condition(p[2], p[1], p[3], p.lineno(1), find_column(p))
+    p[0] = AST.Condition(p[2], p[1], p[3], p.lineno(2), find_column(p, 2))
 
 
 def p_relational_expression_err(p):
@@ -240,7 +241,7 @@ def p_relational_expression_err(p):
                   | expression GT error
                   | expression LT error
     """
-    p[0] = AST.Condition(p[2], p[1], AST.Error(p[3], p.lineno(3), find_column(p, 3)), p.lineno(1), find_column(p))
+    p[0] = AST.Condition(p[2], p[1], AST.Error(p[3], p.lineno(3), find_column(p, 3)), p.lineno(2), find_column(p, 2))
 
 
 def p_negation_expression(p):

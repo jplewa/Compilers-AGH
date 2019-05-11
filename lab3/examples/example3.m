@@ -4,17 +4,17 @@ N = 10;
 M = 20;
 for i = 1:N {
     for j = i:M {
-        print i, j;
+        x = 1;
     }
 }
-
+k = 0;
 while(k>0) {
     if(k<5)
         i = 1;
     else if(k<10)
-        i = 2;   
+        i = 2.;   
     else
-        i = 3;
+        i = "ghj";
     
     k = k - 1;
 }
