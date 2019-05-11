@@ -68,9 +68,9 @@ class TreePrinter:
 
     @addToClass(AST.For)
     def printTree(self, indent=0):
-        self.printWithIndent(self._for, indent)
+        self.printWithIndent(self.for_, indent)
         self.var.printTree(indent + 1)
-        self._range.printTree(indent + 1)
+        self.range_.printTree(indent + 1)
         self.instr.printTree(indent + 1)
 
     @addToClass(AST.Range)

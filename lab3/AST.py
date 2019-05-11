@@ -73,10 +73,10 @@ class While(Node):
 
 
 class For(Node):
-    def __init__(self, _for, var, _range, instr, lineno, colno):
-        self._for = str.upper(_for)
+    def __init__(self, for_, var, range_, instr, lineno, colno):
+        self.for_ = str.upper(for_)
         self.var = var
-        self._range = _range
+        self.range_ = range_
         self.instr = instr
         self.lineno = lineno
         self.colno = colno

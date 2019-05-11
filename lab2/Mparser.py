@@ -57,6 +57,11 @@ def p_instruction(p):
     p[0] = p[1]
 
 
+def p_instruction_err(p):
+    """ instruction : error """
+    p[0] = AST.Error(p[1], p.lineno(1), find_column(p,1))
+    
+
 def p_compound_instruction(p):
     """ instruction : '{' instructions '}' """
     p[0] = AST.Block(p[2], p.lineno(2), find_column(p, 2))
@@ -68,7 +73,8 @@ def p_assignment_instruction(p):
 
 
 def p_assignment_instruction_err(p):
-    """ instruction : variable '=' error ';' """
+    """ instruction : variable '=' error
+                    | variable error """
     p[0] = AST.Assignment(p[2], p[1], AST.Error(p[3], p.lineno(3), find_column(p, 3)), p.lineno(2), find_column(p, 2))
 
 
@@ -110,10 +116,11 @@ def p_while_instruction(p):
 
 
 def p_while_instruction_err(p):
-    """ instruction : WHILE '(' error ')' instruction"""
+    """ instruction : WHILE '(' error ')' instruction """
     p[0] = AST.While(p[1], AST.Error(p[3], p.lineno(3), find_column(
         p, 3)), p[5], p.lineno(1), find_column(p))
     
+
 def p_for_instruction(p):
     """ instruction : FOR variable '=' range instruction """
     p[0] = AST.For(p[1], p[2], p[4], p[5], p.lineno(1), find_column(p))
@@ -137,6 +144,12 @@ def p_variable(p):
         p[0] = AST.Variable(p[1], p.lineno(1), find_column(p))
     else:
         p[0] = AST.Ref(p[1], p[3], p.lineno(1), find_column(p))
+
+
+def p_variable_err(p):
+    """ variable : ID '[' error ']'
+    """
+    p[0] = AST.Error(p[3], p.lineno(3), find_column(p, 3)),
 
 
 def p_index_list(p):
@@ -251,7 +264,7 @@ def p_negation_expression(p):
 
 def p_transposition_expression(p):
     """ expression : expression "'" """
-    p[0] = AST.Transposition(p[1], p.lineno(1), find_column(p))
+    p[0] = AST.Transposition(p[1], p.lineno(2), find_column(p, 2))
 
 
 def p_functional_expression(p):
