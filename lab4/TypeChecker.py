@@ -32,7 +32,9 @@ class ErrorDimensions(ErrorBase):
         return 'ErrorDimensions'
 
 
-types = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: ErrorType())))
+types = defaultdict(lambda: defaultdict(lambda: defaultdict(ErrorType)))
+
+LOOP_TYPES = ['while', 'for']
 
 INTNUM = 'intnum'
 FLOAT = 'float'
@@ -141,12 +143,12 @@ class TypeChecker(NodeVisitor):
                 dims = tuple([x.value for x in node.expr.dims.index_list])
                 self.symbol_table.put(node.var.name, MatrixSymbol(node.var.name, type_, INTNUM, dims))
             elif type_ == MATRIX and isinstance(node.expr, AST.Transposition):
-                xd = node.expr.expr
-                if isinstance(xd, AST.Variable):
-                    lol = self.symbol_table.get(xd.name)
-                    lol.name = node.var.name
-                    lol.dims = tuple(reversed(lol.dims))
-                    self.symbol_table.put(node.var.name, lol)
+                expr = node.expr.expr
+                if isinstance(expr, AST.Variable):
+                    variable = self.symbol_table.get(expr.name)
+                    variable.name = node.var.name
+                    variable.dims = tuple(reversed(variable.dims))
+                    self.symbol_table.put(node.var.name, variable)
                 else:
                     inner_type_ = self.visit(node.expr.vector_list[0].number_list[0])
                     dims = (len(node.expr.vector_list[0].number_list), len(node.expr.vector_list),)
@@ -165,8 +167,7 @@ class TypeChecker(NodeVisitor):
         type_ = types[op][type1][type2]
 
         if isinstance(type_, ErrorType):
-            print(f'Type error at line {node.lineno}, column '
-                  f'{node.colno}: {type1} {op} {type2}')
+            print(f'Type error at line {node.lineno}, column {node.colno}: {type1} {op} {type2}')
         else:
             self.symbol_table.put(node.var.name, VariableSymbol(node.var, type_))
 
@@ -180,7 +181,7 @@ class TypeChecker(NodeVisitor):
             self.symbol_table = self.symbol_table.popScope()
         else:
             self.visit(node.if_instr, 'if')
-            
+
         if node.else_instr is not None:
             if not isinstance(node.else_instr, AST.Block):
                 self.symbol_table = self.symbol_table.pushScope('else')
@@ -229,15 +230,13 @@ class TypeChecker(NodeVisitor):
 
         type_ = types[':'][start_type][stop_type]
         if isinstance(type_, ErrorType):
-            print(f'Type error in range at line {node.lineno}, column '
-                  f'{node.colno}: {start_type} : {stop_type}') 
+            print(f'Type error in range at line {node.lineno}, column {node.colno}: {start_type} : {stop_type}')
         return type_
 
     def visit_Variable(self, node):
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
-            print(f'Undefined variable at line {node.lineno}, column '
-                  f'{node.colno}: {node.name}')
+            print(f'Undefined variable at line {node.lineno}, column {node.colno}: {node.name}')
             return ErrorUndefined()
         return symbol.type_
 
@@ -248,8 +247,7 @@ class TypeChecker(NodeVisitor):
 
         symbol = self.symbol_table.get(node.name)
         if not symbol:
-            print(f'Undefined matrix at line {node.lineno}, column '
-                  f'{node.colno}: {node.name}')
+            print(f'Undefined matrix at line {node.lineno}, column {node.colno}: {node.name}')
             return ErrorUndefined()
 
         type_ = symbol.type_
@@ -268,16 +266,16 @@ class TypeChecker(NodeVisitor):
                     print(f'Dimensions out of bounds, line {node.lineno}, column '
                           f'{node.colno}: {type_} {node.name}, dimensions: {list(dims)}, index: {index_list}')
                     return ErrorOutOfBounds()
-            
+
             if type_ == MATRIX:
                 if len(index_list) == 1:
                     return VECTOR
                 if len(index_list) == 2:
                     type__ = symbol.inner_type_
                     return type__
-            
+
             return symbol.inner_type_
-        
+
         print(f'Type error at line {node.lineno}, column '
               f'{node.colno}: {type_} {[x.value for x in node.index_list.index_list]}')
         return ErrorType()
@@ -286,7 +284,7 @@ class TypeChecker(NodeVisitor):
         for index in node.index_list:
             type_ = self.visit(index)
             if type_ != INTNUM:
-                print(f'Index error at line {node.lineno}, column 'f'{node.colno}: {type_}')
+                print(f'Index error at line {node.lineno}, column {node.colno}: {type_}')
                 return type_
         return INTNUM
 
@@ -300,39 +298,37 @@ class TypeChecker(NodeVisitor):
         name = self.symbol_table.name
         parent = self.symbol_table.parent
 
-        if name not in ['while', 'for']:
+        if name not in LOOP_TYPES:
             while parent is not None:
-                if parent.name in ['while', 'for']:
+                if parent.name in LOOP_TYPES:
                     name = parent.name
                     break
                 parent = parent.parent
 
-        if name not in ['while', 'for']:
-            print(f'Break instruction outside of loop at line {node.lineno}, column '
-                  f'{node.colno}')
+        if name not in LOOP_TYPES:
+            print(f'Break instruction outside of loop at line {node.lineno}, column {node.colno}')
 
     def visit_Continue(self, node):
         name = self.symbol_table.name
         parent = self.symbol_table.parent
 
-        if name not in ['while', 'for']:
+        if name not in LOOP_TYPES:
             while parent is not None:
-                if parent.name in ['while', 'for']:
+                if parent.name in LOOP_TYPES:
                     name = parent.name
                     break
                 parent = parent.parent
 
-        if name not in ['while', 'for']:
-            print(f'Continue instruction outside of loop at line {node.lineno}, column '
-                  f'{node.colno}')
-    
-    def visit_IntNum(self, node):
+        if name not in LOOP_TYPES:
+            print(f'Continue instruction outside of loop at line {node.lineno}, column {node.colno}')
+
+    def visit_IntNum(self, _):
         return INTNUM
 
-    def visit_FloatNum(self, node):
+    def visit_FloatNum(self, _):
         return FLOAT
 
-    def visit_String(self, node):
+    def visit_String(self, _):
         return STRING
 
     def visit_BinExpr(self, node):
@@ -349,8 +345,7 @@ class TypeChecker(NodeVisitor):
         type_ = types[op][type1][type2]
 
         if isinstance(type_, ErrorType):
-            print(f'Type error at line {node.lineno}, column '
-                  f'{node.colno}: {type1} {op} {type2}')
+            print(f'Type error at line {node.lineno}, column {node.colno}: {type1} {op} {type2}')
 
         return type_
 
@@ -373,7 +368,6 @@ class TypeChecker(NodeVisitor):
 
         type_ = types[node.op][type_left][type_right]
 
-
         if isinstance(type_, ErrorBase):
             print(f'Type error at line {node.lineno}, column {node.colno}: {type_left} {node.op} {type_right}')
         return type_
@@ -382,32 +376,28 @@ class TypeChecker(NodeVisitor):
         type_ = self.visit(node.expr)
         op = node.op
         if type_ not in (INTNUM, FLOAT):
-            print(f'Type error at line {node.lineno}, column '
-                  f'{node.colno}: {op} {type_}')
+            print(f'Type error at line {node.lineno}, column {node.colno}: {op} {type_}')
         return type_
 
     def visit_Transposition(self, node):
         type_ = self.visit(node.expr)
         if type_ != MATRIX:
-            print(f'Type error in transposition at line {node.lineno}, column '
-                  f'{node.colno}: {type_}')
+            print(f'Type error in transposition at line {node.lineno}, column {node.colno}: {type_}')
             type_ = ErrorType()
         return type_
 
     def visit_FunctionalExpression(self, node):
         type_ = self.visit(node.dims)
-        if isinstance(type_, ErrorBase):
-            return type_
-        
-        if len (node.dims.index_list) > 2:
-            print(f'Too many arguments at {node.lineno}, column '
-                  f'{node.colno}: function {node.func}, expected 1D or 2D')
-            return ErrorDimensions()
-        
-        if len(node.dims.index_list) == 2:
-            return MATRIX
-        if len(node.dims.index_list) == 1:
-            return VECTOR
+        if not isinstance(type_, ErrorBase):
+            if len(node.dims.index_list) > 2:
+                print(f'Too many arguments at {node.lineno}, column '
+                      f'{node.colno}: function {node.func}, expected 1D or 2D')
+                type_ = ErrorDimensions()
+            elif len(node.dims.index_list) == 2:
+                type_ = MATRIX
+            if len(node.dims.index_list) == 1:
+                type_ = VECTOR
+        return type_
 
     def visit_Matrix(self, node):
         number_of_vectors = len(node.vector_list)
@@ -425,8 +415,7 @@ class TypeChecker(NodeVisitor):
             if isinstance(type_, ErrorBase):
                 return type_
         if len(set(inner_types_)) != 1:
-            print(f'Mixed inner matrix types at line {node.lineno}, column '
-                  f'{node.colno}: {inner_types_}')
+            print(f'Mixed inner matrix types at line {node.lineno}, column {node.colno}: {inner_types_}')
             return ErrorType()
 
         return MATRIX
@@ -463,46 +452,33 @@ class TypeChecker(NodeVisitor):
         all_dims = []
         all_inner_types = []
         for expr in tail:
-            if isinstance(expr, AST.Variable):
-                type_ = self.visit(expr)
-                if type_ in [VECTOR, MATRIX]:
-                    inner_type_ = self.symbol_table.get(expr.name).inner_type_
-                    dims = self.symbol_table.get(expr.name).dims                       
-                else:
-                    inner_type_ = type_
-                    dims = None
-            elif isinstance(expr, AST.Vector):
-                type_ = self.visit(expr)
-                if not isinstance(type_, ErrorBase):
+            type_ = self.visit(expr)
+            inner_type_, dims = type_, None
+            if not isinstance(type_, ErrorBase):
+                if isinstance(expr, AST.Variable):
+                    if type_ in [VECTOR, MATRIX]:
+                        inner_type_ = self.symbol_table.get(expr.name).inner_type_
+                        dims = self.symbol_table.get(expr.name).dims
+                    else:
+                        inner_type_, dims = type_, None
+                elif isinstance(expr, AST.Vector):
                     inner_type_ = self.visit(expr.number_list[0])
                     dims = (len(expr.number_list),)
-            elif isinstance(expr, AST.Matrix):
-                type_ = self.visit(expr)
-                if not isinstance(type_, ErrorBase):
+                elif isinstance(expr, AST.Matrix):
                     inner_type_ = self.visit(expr.vector_list[0].number_list[0])
                     dims = (len(expr.vector_list), len(expr.vector_list[0].number_list),)
-            elif isinstance(expr, AST.Transposition):
-                type_ = self.visit(expr)
-                if not isinstance(type_, ErrorBase):
+                elif isinstance(expr, AST.Transposition):
                     inner_type_ = self.visit(expr.vector_list[0].number_list[0])
                     dims = (len(expr.vector_list[0].number_list), len(expr.vector_list),)
-            else:
-                type_ = self.visit(expr)
-                inner_type_ = type_
-                dims = None
             all_dims += [dims]
-            all_inner_types += [inner_type_]         
+            all_inner_types += [inner_type_]
         result_dim = None
         all_dims = {dim for dim in all_dims if dim is not None}
         if len(all_dims) > 1:
-            print(f'Matrix dimension error at line {node.lineno}, column '
-                  f'{node.colno}: {all_dims}')
+            print(f'Matrix dimension error at line {node.lineno}, column {node.colno}: {all_dims}')
             result_dim = ErrorDimensions()
-        elif len(all_dims) == 1:
-            result_dim = list(all_dims)[0]
         else:
-            result_dim = None
-
+            result_dim = list(all_dims)[0] if len(all_dims) == 1 else None
         return (INTNUM if all([b == INTNUM for b in all_inner_types]) else FLOAT), result_dim
 
     def visit_Error(self, _):

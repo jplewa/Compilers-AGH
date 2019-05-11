@@ -33,7 +33,6 @@ class SymbolTable():
         self.variables[name] = symbol
 
     def get(self, name):  # get variable symbol or fundef from <name> entry
-        # print(">>>>>", self.variables)
         symbol = self.variables.get(name, None)
         if symbol is None and self.parent is not None:
             symbol = self.getParentScope().get(name)
@@ -49,7 +48,7 @@ class SymbolTable():
         return self.parent
 
     def __str__(self):
-        result = f'-----{self.name} P:{self.parent.name if self.parent else "None"}-----\n'
+        result = f'-----{self.name} P: {self.parent.name if self.parent else "None"}-----\n'
         result += {key: value.__str__() for key, value in self.variables.items()}.__str__()
         return result
 

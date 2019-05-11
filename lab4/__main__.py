@@ -1,5 +1,5 @@
 import sys
-import ply.yacc as yacc # noqa
+import ply.yacc as yacc  # noqa
 from ..lab2 import Mparser  # noqa
 from ..lab3 import TreePrinter  # noqa
 from . import TypeChecker
@@ -24,5 +24,5 @@ if __name__ == '__main__':
     typeChecker = TypeChecker.TypeChecker()
     typeChecker.visit(ast)   # or alternatively ast.accept(typeChecker)
     print()
-    print("--------SYMBOLS--------")
+    print('--------SYMBOLS--------')
     typeChecker.symbol_table.prettyPrint()
