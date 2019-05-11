@@ -63,7 +63,7 @@ class SymbolTable():
         while parent is not None:
             parents.append(parent)
             parent = parent.getParentScope()
-        
+
         for parent in reversed(parents):
             result += parent.__str__()
             result += '\n\n'

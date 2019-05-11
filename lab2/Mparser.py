@@ -59,8 +59,8 @@ def p_instruction(p):
 
 def p_instruction_err(p):
     """ instruction : error """
-    p[0] = AST.Error(p[1], p.lineno(1), find_column(p,1))
-    
+    p[0] = AST.Error(p[1], p.lineno(1), find_column(p, 1))
+
 
 def p_compound_instruction(p):
     """ instruction : '{' instructions '}' """
@@ -119,7 +119,7 @@ def p_while_instruction_err(p):
     """ instruction : WHILE '(' error ')' instruction """
     p[0] = AST.While(p[1], AST.Error(p[3], p.lineno(3), find_column(
         p, 3)), p[5], p.lineno(1), find_column(p))
-    
+
 
 def p_for_instruction(p):
     """ instruction : FOR variable '=' range instruction """
@@ -128,7 +128,7 @@ def p_for_instruction(p):
 
 def p_range(p):
     """ range : expression ':' expression """
-    p[0] = AST.Range(p[2], p[1], p[3], p.lineno(2), find_column(p,2))
+    p[0] = AST.Range(p[2], p[1], p[3], p.lineno(2), find_column(p, 2))
 
 
 def p_range_err(p):
@@ -149,7 +149,7 @@ def p_variable(p):
 def p_variable_err(p):
     """ variable : ID '[' error ']'
     """
-    p[0] = AST.Error(p[3], p.lineno(3), find_column(p, 3)),
+    p[0] = AST.Error(p[3], p.lineno(3), find_column(p, 3))
 
 
 def p_index_list(p):
@@ -280,8 +280,7 @@ def p_functional_expression_err(p):
                    | ONES '(' error ')'
                    | EYE '(' error ')'
     """
-    p[0] = AST.FunctionalExpression(p[1], AST.Error(p[3], p.lineno(3), 
-                                    find_column(p, 3)), p.lineno(1), find_column(p))
+    p[0] = AST.FunctionalExpression(p[1], AST.Error(p[3], p.lineno(3), find_column(p, 3)), p.lineno(1), find_column(p))
 
 
 def p_matrix(p):
@@ -312,7 +311,7 @@ def p_vector(p):
     """ vector : '[' number_list ']' """
     p[0] = p[2]
     p[2].lineno = p.lineno(1)
-    p[2].colno = find_column(p, 1) 
+    p[2].colno = find_column(p, 1)
 
 
 def p_number_list(p):

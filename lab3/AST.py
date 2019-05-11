@@ -73,7 +73,7 @@ class While(Node):
 
 
 class For(Node):
-    def __init__(self, for_, var, range_, instr, lineno, colno):
+    def __init__(self, for_, var, range_, instr, lineno, colno): # noqa
         self.for_ = str.upper(for_)
         self.var = var
         self.range_ = range_
@@ -211,7 +211,7 @@ class Matrix(Node):
 
     def addVector(self, vector):
         self.vector_list.append(vector)
- 
+
 
 class Vector(Node):
     def __init__(self, number, lineno, colno):

@@ -35,7 +35,7 @@ class TreePrinter:
 
     @addToClass(AST.Block)
     def printTree(self, indent=0):
-        self.printWithIndent('BLOCK',indent)
+        self.printWithIndent('BLOCK', indent)
         self.instructions.printTree(indent + 1)
 
     @addToClass(AST.Assignment)
