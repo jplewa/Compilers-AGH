@@ -61,12 +61,11 @@ for op in matrix_ops:
     types[op][MATRIX][MATRIX] = MATRIX
 
 
-for op in mul_div_ops:
-    for dims in [MATRIX, VECTOR]:
-        types[op][INTNUM][dims] = dims
-        types[op][FLOAT][dims] = dims
-        types[op][dims][INTNUM] = dims
-        types[op][dims][FLOAT] = dims
+for dims in [MATRIX, VECTOR]:
+    types['*'][INTNUM][dims] = dims
+    types['*'][FLOAT][dims] = dims
+    types['*'][dims][INTNUM] = dims
+    types['*'][dims][FLOAT] = dims
 
 
 for op in relational_ops:
@@ -107,23 +106,50 @@ class TypeChecker(NodeVisitor):
         self.nesting = 0
 
     def visit_Program(self, node):
-        self.visit(node.instructions)
+        return self.visit(node.instructions)
 
     def visit_Instructions(self, node):
+        error = None
         for instruction in node.instructions:
-            self.visit(instruction)
+            type_ = self.visit(instruction)
+            if isinstance(type_, ErrorBase):
+                error = type_
+        return error
 
     def visit_Block(self, node, name='block'):
+        error = None
         self.symbol_table = self.symbol_table.pushScope(name)
         for instruction in node.instructions.instructions:
-            self.visit(instruction)
+            type_ = self.visit(instruction)
+            if isinstance(type_, ErrorBase):
+                error = type_
         self.symbol_table.prettyPrint()
         self.symbol_table = self.symbol_table.popScope()
+        return error
 
     def visit_Assignment(self, node):
         type_ = self.visit(node.expr)
         if not isinstance(type_, ErrorBase):
-            if type_ == VECTOR and isinstance(node.expr, AST.Ref):
+            if isinstance(node.var, AST.Ref):
+                var_type = self.visit(node.var)
+                if not isinstance(var_type, ErrorBase):
+                    if var_type != type_:
+                        print(f'Type error at line {node.lineno}, column {node.colno}: {var_type} = {type_}')
+                        type_ = ErrorType()
+                    elif type_ == VECTOR and var_type == VECTOR and isinstance(node.expr, AST.Vector):
+                        inner_type_ = self.symbol_table.get(node.var.name).inner_type_
+                        dims = (self.symbol_table.get(node.var.name).dims[1],)
+                        inner_type_r = self.visit(node.expr.number_list[0])
+                        dims_r = (len(node.expr.number_list),)
+                        if inner_type_ != inner_type_r:
+                            print(f'Type error at line {node.lineno}, column {node.colno}: {var_type}[{inner_type_}] = {type_}[{inner_type_r}]')
+                            type_ = ErrorDimensions()
+                        elif dims_r[0] >= dims[0]:
+                            print(f'Dimension error at line {node.lineno}, column {node.colno}')
+                            type_ = ErrorDimensions()
+                else:
+                    type_ = var_type
+            elif type_ == VECTOR and isinstance(node.expr, AST.Ref):
                 inner_type_ = self.symbol_table.get(node.expr.name).inner_type_
                 dims = (self.symbol_table.get(node.expr.name).dims[1],)
                 self.symbol_table.put(node.var.name, MatrixSymbol(node.var.name, type_, inner_type_, dims))
@@ -155,13 +181,17 @@ class TypeChecker(NodeVisitor):
                     self.symbol_table.put(node.var.name, MatrixSymbol(node.var.name, type_, inner_type_, dims))
             else:
                 self.symbol_table.put(node.var.name, VariableSymbol(node.var.name, type_))
+        return type_ if isinstance(type_, ErrorBase) else None
 
     def visit_ArithmeticAssignment(self, node):
         type1 = self.visit(node.var)
         type2 = self.visit(node.expr)
 
-        if isinstance(type1, ErrorBase) or isinstance(type2, ErrorBase):
-            return
+        if isinstance(type1, ErrorBase):
+            return type1
+        
+        if isinstance(type2, ErrorBase):
+            return type2
 
         op = node.op
         type_ = types[op][type1][type2]
@@ -170,49 +200,69 @@ class TypeChecker(NodeVisitor):
             print(f'Type error at line {node.lineno}, column {node.colno}: {type1} {op} {type2}')
         else:
             self.symbol_table.put(node.var.name, VariableSymbol(node.var, type_))
-
+        
+        return type_ if isinstance(type_, ErrorBase) else None
+        
     def visit_If(self, node):
-        self.visit(node.cond)
+        type_ = self.visit(node.cond)
+        error = type_ if isinstance(type_, ErrorBase) else None
 
         if not isinstance(node.if_instr, AST.Block):
             self.symbol_table = self.symbol_table.pushScope('if')
-            self.visit(node.if_instr, None)
+            instr_type = self.visit(node.if_instr, None)
+            error = instr_type if isinstance(type_, ErrorBase) else error
             self.symbol_table.prettyPrint()
             self.symbol_table = self.symbol_table.popScope()
         else:
-            self.visit(node.if_instr, 'if')
+            instr_type = self.visit(node.if_instr, 'if')
+            error = instr_type if isinstance(type_, ErrorBase) else error
 
         if node.else_instr is not None:
             if not isinstance(node.else_instr, AST.Block):
                 self.symbol_table = self.symbol_table.pushScope('else')
-                self.visit(node.else_instr, None)
+                instr_type = self.visit(node.else_instr, None)
+                error = instr_type if isinstance(type_, ErrorBase) else error
                 self.symbol_table.prettyPrint()
                 self.symbol_table = self.symbol_table.popScope()
             else:
-                self.visit(node.else_instr, 'else')
+                instr_type = self.visit(node.else_instr, 'else')
+                error = instr_type if isinstance(type_, ErrorBase) else error
+
+        return error
 
     def visit_While(self, node):
-        self.visit(node.cond)
+        type_ = self.visit(node.cond)
+        error = type_ if isinstance(type_, ErrorBase) else None
 
         if not isinstance(node.instr, AST.Block):
             self.symbol_table = self.symbol_table.pushScope('while')
-            self.visit(node.instr, None)
+            instr_type = self.visit(node.instr, None)
+            error = instr_type if isinstance(type_, ErrorBase) else error
             self.symbol_table.prettyPrint()
             self.symbol_table = self.symbol_table.popScope()
         else:
-            self.visit(node.instr, 'while')
+            instr_type = self.visit(node.instr, 'while')
+            error = instr_type if isinstance(type_, ErrorBase) else error
+
+        return error
 
     def visit_For(self, node):
         type_ = self.visit(node.range_)
+        error = type_ if isinstance(type_, ErrorBase) else None
+
         if not isinstance(type_, ErrorType):
             self.symbol_table.put(node.var.name, VariableSymbol(node.var.name, type_))
         if not isinstance(node.instr, AST.Block):
             self.symbol_table = self.symbol_table.pushScope('for')
-            self.visit(node.instr, None)
+            instr_type = self.visit(node.instr, None)
+            error = instr_type if isinstance(type_, ErrorBase) else error
             self.symbol_table.prettyPrint()
             self.symbol_table = self.symbol_table.popScope()
         else:
-            self.visit(node.instr, 'for')
+            instr_type = self.visit(node.instr, 'for')
+            error = instr_type if isinstance(type_, ErrorBase) else error
+
+        return error
 
     def visit_Range(self, node):
         start_type = self.visit(node.start)
@@ -289,10 +339,13 @@ class TypeChecker(NodeVisitor):
         return INTNUM
 
     def visit_Return(self, node):
+        dims = None
         type_ = self.visit(node.expr)
         if not isinstance(type_, ErrorBase):
             if isinstance(node.expr, AST.BinExpr):
-                self.eval_BinExpr(node.expr)
+                _, dims = self.eval_BinExpr(node.expr)
+            return dims
+        return type_
 
     def visit_Break(self, node):
         name = self.symbol_table.name
@@ -307,6 +360,9 @@ class TypeChecker(NodeVisitor):
 
         if name not in LOOP_TYPES:
             print(f'Break instruction outside of loop at line {node.lineno}, column {node.colno}')
+            return ErrorBase()
+
+        return None
 
     def visit_Continue(self, node):
         name = self.symbol_table.name
@@ -321,6 +377,9 @@ class TypeChecker(NodeVisitor):
 
         if name not in LOOP_TYPES:
             print(f'Continue instruction outside of loop at line {node.lineno}, column {node.colno}')
+            return ErrorBase()
+        
+        return None
 
     def visit_IntNum(self, _):
         return INTNUM
@@ -434,13 +493,19 @@ class TypeChecker(NodeVisitor):
         return VECTOR
 
     def visit_Print(self, node):
-        self.visit(node.elems)
+        return self.visit(node.elems)
 
     def visit_Elements(self, node):
+        error = None
         for elem in node.elems:
             if isinstance(elem, AST.BinExpr):
-                self.eval_BinExpr(elem)
-            self.visit(elem)
+                _, dims = self.eval_BinExpr(elem)
+                error = dims if isinstance(dims, ErrorBase) else error
+            
+            type_ = self.visit(elem)
+            error = type_ if isinstance(type_, ErrorBase) else error
+        
+        return error
 
     def eval_BinExpr(self, node):
         tail = [node.right]
@@ -468,8 +533,13 @@ class TypeChecker(NodeVisitor):
                     inner_type_ = self.visit(expr.vector_list[0].number_list[0])
                     dims = (len(expr.vector_list), len(expr.vector_list[0].number_list),)
                 elif isinstance(expr, AST.Transposition):
-                    inner_type_ = self.visit(expr.vector_list[0].number_list[0])
-                    dims = (len(expr.vector_list[0].number_list), len(expr.vector_list),)
+                    if isinstance(expr.expr, AST.Matrix):
+                        inner_type_ = self.visit(expr.vector_list[0].number_list[0])
+                        dims = (len(expr.vector_list[0].number_list), len(expr.vector_list),)
+                    elif isinstance(expr.expr, AST.Variable):
+                        inner_type_ = self.symbol_table.get(expr.expr.name).inner_type_
+                        dims = self.symbol_table.get(expr.expr.name).dims
+                        dims = tuple(reversed(dims))
             all_dims += [dims]
             all_inner_types += [inner_type_]
         result_dim = None

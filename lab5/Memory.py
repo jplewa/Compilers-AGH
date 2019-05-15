@@ -14,10 +14,13 @@ class Memory:
         self.variables[name] = value
 
 
+    # def __
+
+
 # pylama:ignore=W601
 class MemoryStack:
 
-    def __init__(self, memory=None):  # initialize memory stack with memory <memory>
+    def __init__(self, memory=Memory("main")):  # initialize memory stack with memory <memory>
         self.stack = [memory]
 
     def get(self, name):             # gets from memory stack current value of variable <name>
@@ -35,6 +38,7 @@ class MemoryStack:
             if memory.has_key(name):
                 memory.put(name, value)
                 break
+        self.insert(name, value)
 
     def push(self, memory):  # pushes memory <memory> onto the stack
         self.stack.append(memory)

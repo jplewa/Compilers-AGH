@@ -33,7 +33,7 @@ def when(param_type):
     return f
 
 
-class Dispatcher(object):
+class Dispatcher():
     def __init__(self, param_name, fn):
         frame = inspect.currentframe().f_back.f_back   # these 2 lines
         top_level = frame.f_locals == frame.f_globals  # seem redundant

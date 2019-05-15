@@ -122,8 +122,8 @@ def p_while_instruction_err(p):
 
 
 def p_for_instruction(p):
-    """ instruction : FOR variable '=' range instruction """
-    p[0] = AST.For(p[1], p[2], p[4], p[5], p.lineno(1), find_column(p))
+    """ instruction : FOR ID '=' range instruction """
+    p[0] = AST.For(p[1], AST.Variable(p[2], p.lineno(2), find_column(p, 2)), p[4], p[5], p.lineno(1), find_column(p))
 
 
 def p_range(p):

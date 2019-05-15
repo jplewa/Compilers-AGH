@@ -6,7 +6,8 @@ TRANSPOSE = 'TRANSPOSE'
 
 
 class Node():
-    pass
+    def accept(self, visitor):
+        return visitor.visit(self)
 
 
 class Program(Node):

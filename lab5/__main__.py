@@ -24,9 +24,11 @@ if __name__ == '__main__':
 
     # Below code shows how to use visitor
     typeChecker = TypeChecker.TypeChecker()
-    typeChecker.visit(ast)   # or alternatively ast.accept(typeChecker)
+    error = typeChecker.visit(ast)   # or alternatively ast.accept(typeChecker)
 
-    # ast.accept(Interpreter())
+    # print(error)
+    if not error: 
+        ast.accept(Interpreter.Interpreter())
     # in future
     # ast.accept(OptimizationPass1())
     # ast.accept(OptimizationPass2())
