@@ -2,7 +2,7 @@ from ..lab3 import AST  # noqa
 from ..lab4 import SymbolTable  # noqa
 from . import Memory    # noqa
 from . import Exceptions    # noqa
-from .visit import *    # noqa
+from .visit import *    # pylint: disable=unused-wildcard-import
 import sys
 import numpy as np
 
@@ -22,17 +22,15 @@ arithmetic_ops = {
     '*=': (lambda x, y: x * y),
     '/': (lambda x, y: x / y),
     '/=': (lambda x, y: x / y),
-    # '+': (lambda x, y: (np.matrix(x) + np.matrix(y)).tolist()),
-    # '+=': (lambda x, y: (np.matrix(x) + np.matrix(y)).tolist()),
-    '.+': (lambda x, y: (np.matrix(x) + np.matrix(y)).tolist()),
-    # '-': (lambda x, y: (np.matrix(x) - np.matrix(y)).tolist()),
-    # '-=': (lambda x, y: (np.matrix(x) - np.matrix(y)).tolist()),
-    '.-': (lambda x, y: (np.matrix(x) - np.matrix(y)).tolist()),
-    # '*': (lambda x, y: np.array(np.matmul(x, y)).tolist()),
-    # '*=': (lambda x, y: np.array(np.matmul(x, y)).tolist()),
+    '.+': (lambda x, y: ((np.matrix(x) + np.matrix(y)).tolist()[0])
+           if not (isinstance(x, list) and isinstance(x[0], list)) and
+           not (isinstance(y, list) and isinstance(y[0], list))
+           else ((np.matrix(x) + np.matrix(y)).tolist())),
+    '.-': (lambda x, y: ((np.matrix(x) - np.matrix(y)).tolist()[0])
+           if not (isinstance(x, list) and isinstance(x[0], list)) and
+           not (isinstance(y, list) and isinstance(y[0], list))
+           else ((np.matrix(x) - np.matrix(y)).tolist())),
     '.*': (lambda x, y: np.multiply(np.array(x), np.array(y)).tolist()),
-    # '/': (lambda x, y: np.array(np.matmul(np.matrix(x), np.linalg.inv(y))).tolist()),
-    # '/=': (lambda x, y: np.array(np.matmul(np.matrix(x), np.linalg.inv(y))).tolist()),
     './': (lambda x, y: np.divide(np.array(x), np.array(y)).tolist()),
 }
 
@@ -61,7 +59,12 @@ class Interpreter():
 
     @when(AST.Program)
     def visit(self, node):
-        node.instructions.accept(self)
+        try:
+            node.instructions.accept(self)
+        except Exceptions.BreakException:
+            print('ups')
+        except Exceptions.ContinueException:
+            print('ups')
 
     @when(AST.Instructions)
     def visit(self, node):
@@ -70,7 +73,7 @@ class Interpreter():
 
     @when(AST.Block)
     def visit(self, node):
-        memory_stack.push(Memory.Memory("block"))
+        memory_stack.push(Memory.Memory('block'))
         node.instructions.accept(self)
         memory_stack.pop()
 
@@ -85,16 +88,12 @@ class Interpreter():
         r2 = node.right.accept(self)
 
         return arithmetic_ops[node.op](r1, r2)
-        # try sth smarter than:
-        # if(node.op=='+') return r1+r2
-        # elsif(node.op=='-') ...
-        # but do not use python eval
 
     @when(AST.Negation)
     def visit(self, node):
         value = node.expr.accept(self)
         if isinstance(value, list):
-            return (- np.array(value)).tolist()
+            return (- np.array(value)).tolist()  # pylint: disable=invalid-unary-operand-type
         return -value
 
     @when(AST.Transposition)
@@ -104,12 +103,12 @@ class Interpreter():
     @when(AST.FunctionalExpression)
     def visit(self, node):
         if node.func == 'eye':
-            return getattr(np, node.func, lambda x: np.array([]))(*[x.accept(self) for x in node.dims.index_list]).tolist()
+            return getattr(np, node.func, lambda x: np.array([]))(*[x.accept(self)
+                                                                    for x in node.dims.index_list]).tolist()
         return getattr(np, node.func, lambda x: np.array([]))([x.accept(self) for x in node.dims.index_list]).tolist()
 
     @when(AST.Assignment)
     def visit(self, node):
-        # print(type(node.expr))
         value = node.expr.accept(self)
         if isinstance(node.var, AST.Ref):
             temp = np.array(memory_stack.get(node.var.name))
@@ -146,7 +145,12 @@ class Interpreter():
 
         i = node.var.accept(self)
         while i < range_[1]:
-            node.instr.accept(self)
+            try:
+                node.instr.accept(self)
+            except Exceptions.BreakException:
+                break
+            except Exceptions.ContinueException:
+                pass
             i = node.var.accept(self) + 1
             memory_stack.set_(node.var.name, i)
 
@@ -165,7 +169,7 @@ class Interpreter():
 
     @when(AST.Print)
     def visit(self, node):
-        print("PRINT: ", end='')
+        # print("PRINT: ", end='')
         for elem in node.elems.accept(self):
             print(elem, end=' ')
         print()
@@ -196,8 +200,6 @@ class Interpreter():
         index = tuple([x.accept(self) for x in node.index_list.index_list])
         return value[index].tolist() if isinstance(value[index], np.ndarray) else value[index]
 
-    # simplistic while loop interpretation
-
     @when(AST.While)
     def visit(self, node):
         while node.cond.accept(self):
@@ -206,7 +208,7 @@ class Interpreter():
             except Exceptions.BreakException:
                 break
             except Exceptions.ContinueException:
-                continue
+                pass
 
     @when(AST.Break)
     def visit(self, node):

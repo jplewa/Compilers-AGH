@@ -86,7 +86,7 @@ def t_ID(t):
 
 def t_STRING(t):
     r'(".*?")|(\'.*?\')'
-    t.value = str(t.value)
+    t.value = str(t.value)[1:-1]    # to skip the quotation marks
     return t
 
 

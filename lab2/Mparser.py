@@ -103,10 +103,15 @@ def p_if_instruction_err(p):
                     | IF '(' error ')' instruction ELSE instruction"""
     if len(p) == 8:
         p[0] = AST.If(p[1], AST.Error(p[3], p.lineno(3), find_column(
-            p, 3)), p[5], p.lineno(1), find_column(p), p[6], p[7])
+            p, 3)), p[5], p.lineno(1), find_column(p, 1), p[6], p[7])
     else:
         p[0] = AST.If(p[1], AST.Error(p[3], p.lineno(3), find_column(
-            p, 3)), p[5], p.lineno(1), find_column(p))
+            p, 3)), p[5], p.lineno(1), find_column(p, 1))
+
+
+def p_else_instruction_err(p):
+    """ instruction : ELSE error"""
+    p[0] = AST.Error(p[2], p.lineno(1), find_column(p, 1))
 
 
 def p_while_instruction(p):
@@ -318,19 +323,31 @@ def p_number_list(p):
     """ number_list : number_list ',' variable
                     | number_list ',' INTNUM
                     | number_list ',' FLOAT
+                    | number_list ',' SUB variable %prec NEGATIVE
+                    | number_list ',' SUB INTNUM %prec NEGATIVE
+                    | number_list ',' SUB FLOAT %prec NEGATIVE
+                    | SUB variable %prec NEGATIVE
+                    | SUB INTNUM %prec NEGATIVE
+                    | SUB FLOAT %prec NEGATIVE
                     | variable
                     | INTNUM
                     | FLOAT
     """
-    def _eval(x, n):
-        return AST.IntNum(x, p.lineno(n), find_column(p, n)) if isinstance(x, int) \
-            else AST.FloatNum(x, p.lineno(n), find_column(p, n)) if isinstance(x, float) else x
+    def _eval(x, n, factor=1):
+        return AST.IntNum(factor * x, p.lineno(n), find_column(p, n)) if isinstance(x, int) \
+            else AST.FloatNum(factor * x, p.lineno(n), find_column(p, n)) if isinstance(x, float) else \
+            AST.Negation('-', x, p.lineno(n), find_column(p, n))
 
-    if len(p) == 2:
-        p[0] = AST.Vector(_eval(p[1], 1), p.lineno(1), find_column(p))
-    else:
+    if len(p) == 5:
+        p[0] = p[1]
+        p[0].addNumber(_eval(p[4], 4, -1))
+    elif len(p) == 4:
         p[0] = p[1]
         p[0].addNumber(_eval(p[3], 3))
+    elif len(p) == 3:
+        p[0] = AST.Vector(_eval(p[2], 1, -1), p.lineno(2), find_column(p, 2))
+    elif len(p) == 2:
+        p[0] = AST.Vector(_eval(p[1], 1), p.lineno(1), find_column(p))
 
 
 def p_print(p):
