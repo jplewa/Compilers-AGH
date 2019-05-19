@@ -27,7 +27,7 @@ if (3 < 2) {
 print "nested if/else";
 
 if (2==2) {
-    if (2==1) {
+    if (2==2) {
         print "this should print";        
     } else {
         print "this should not print";

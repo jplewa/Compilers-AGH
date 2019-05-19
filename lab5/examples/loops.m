@@ -51,4 +51,3 @@ while (i > 1) {
 
 print "while inline (inifnite)";
 # while (1<2) print "OJEJ";
-

@@ -218,26 +218,29 @@ class TypeChecker(NodeVisitor):
 
         error = type_ if isinstance(type_, ErrorBase) else None
 
-        if not isinstance(node.if_instr, AST.Block):
+        if isinstance(node.if_instr, AST.Block):
+            instr_type = self.visit(node.if_instr, 'if')
+            error = instr_type if isinstance(instr_type, ErrorBase) else error
+        else:
             self.symbol_table = self.symbol_table.pushScope('if')
             instr_type = self.visit(node.if_instr, None)
-            error = instr_type if isinstance(type_, ErrorBase) else error
+            error = instr_type if isinstance(instr_type, ErrorBase) else error
             # self.symbol_table.prettyPrint()
             self.symbol_table = self.symbol_table.popScope()
-        else:
-            instr_type = self.visit(node.if_instr, 'if')
-            error = instr_type if isinstance(type_, ErrorBase) else error
+
+        if error is not None:
+            return error
 
         if node.else_instr is not None:
             if not isinstance(node.else_instr, AST.Block):
                 self.symbol_table = self.symbol_table.pushScope('else')
                 instr_type = self.visit(node.else_instr, None)
-                error = instr_type if isinstance(type_, ErrorBase) else error
+                error = instr_type if isinstance(instr_type, ErrorBase) else error
                 # self.symbol_table.prettyPrint()
                 self.symbol_table = self.symbol_table.popScope()
             else:
                 instr_type = self.visit(node.else_instr, 'else')
-                error = instr_type if isinstance(type_, ErrorBase) else error
+                error = instr_type if isinstance(instr_type, ErrorBase) else error
 
         return error
 
@@ -252,12 +255,12 @@ class TypeChecker(NodeVisitor):
         if not isinstance(node.instr, AST.Block):
             self.symbol_table = self.symbol_table.pushScope('while')
             instr_type = self.visit(node.instr, None)
-            error = instr_type if isinstance(type_, ErrorBase) else error
+            error = instr_type if isinstance(instr_type, ErrorBase) else error
             # self.symbol_table.prettyPrint()
             self.symbol_table = self.symbol_table.popScope()
         else:
             instr_type = self.visit(node.instr, 'while')
-            error = instr_type if isinstance(type_, ErrorBase) else error
+            error = instr_type if isinstance(instr_type, ErrorBase) else error
 
         return error
 
@@ -270,14 +273,14 @@ class TypeChecker(NodeVisitor):
         if not isinstance(node.instr, AST.Block):
             self.symbol_table = self.symbol_table.pushScope('for')
             instr_type = self.visit(node.instr, None)
-            error = instr_type if isinstance(type_, ErrorBase) else error
+            error = instr_type if isinstance(instr_type, ErrorBase) else error
             # self.symbol_table.prettyPrint()
             self.symbol_table = self.symbol_table.popScope()
         else:
             instr_type = self.visit(node.instr, 'for')
-            error = instr_type if isinstance(type_, ErrorBase) else error
+            error = instr_type if isinstance(instr_type, ErrorBase) else error
 
-        return error
+        return type_ if isinstance(type_, ErrorBase) else error
 
     def visit_Range(self, node):
         start_type = self.visit(node.start)
@@ -319,18 +322,22 @@ class TypeChecker(NodeVisitor):
         dims = symbol.dims
 
         if type_ in [MATRIX, VECTOR]:
-            index_list = [index.value for index in node.index_list.index_list]
+            index_list = node.index_list.index_list
+            # this condition was added to allow for accessing list elements by an index assigned to a variable
+            # in case of an out of bounds access a runtime error would have to be thrown
+            if isinstance(node.index_list.index_list[0], AST.IntNum):
+                index_list = [index.value for index in index_list]
 
-            if len(node.index_list.index_list) > len(dims):
-                print(f'Dimensions out of bounds, line {node.lineno}, column '
-                      f'{node.colno}: {type_} {node.name}, dimensions: {list(dims)}, index: {index_list}')
-                return ErrorOutOfBounds()
-
-            for index, dim in zip(node.index_list.index_list, dims):
-                if index.value >= dim or index.value < 0:
+                if len(node.index_list.index_list) > len(dims):
                     print(f'Dimensions out of bounds, line {node.lineno}, column '
                           f'{node.colno}: {type_} {node.name}, dimensions: {list(dims)}, index: {index_list}')
                     return ErrorOutOfBounds()
+
+                for index, dim in zip(node.index_list.index_list, dims):
+                    if index.value >= dim or index.value < 0:
+                        print(f'Dimensions out of bounds, line {node.lineno}, column '
+                              f'{node.colno}: {type_} {node.name}, dimensions: {list(dims)}, index: {index_list}')
+                        return ErrorOutOfBounds()
 
             if type_ == MATRIX:
                 if len(index_list) == 1:

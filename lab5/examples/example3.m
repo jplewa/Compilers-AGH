@@ -10,3 +10,8 @@ print b[0];
 for a = 2:1 {
     print "ups";
 }
+
+for i = 1:2 {
+    if (1 == 2)
+        break
+}

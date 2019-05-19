@@ -37,7 +37,7 @@ class MemoryStack:
         for memory in reversed(self.stack):
             if memory.has_key(name):
                 memory.put(name, value)
-                break
+                return
         self.insert(name, value)
 
     def push(self, memory):  # pushes memory <memory> onto the stack
